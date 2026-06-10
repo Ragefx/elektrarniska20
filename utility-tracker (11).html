@@ -1,0 +1,2293 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Elektrarniska20 — Utility Tracker</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg-0: #f4f5f7;
+  --bg-1: #ffffff;
+  --bg-2: #f0f1f4;
+  --bg-3: #e8eaef;
+  --bg-4: #dde0e8;
+  --border: #dde0e8;
+  --border-light: #c8ccd8;
+  --text-0: #1a1e2e;
+  --text-1: #4a5068;
+  --text-2: #8b92a8;
+  --amber: #d97706;
+  --amber-dim: #fde68a;
+  --amber-glow: rgba(217,119,6,0.10);
+  --teal: #0d9488;
+  --teal-dim: #ccfbf1;
+  --teal-glow: rgba(13,148,136,0.10);
+  --red: #dc2626;
+  --green: #16a34a;
+  --blue: #2563eb;
+  --purple: #7c3aed;
+  --orange: #ea580c;
+  --pink: #db2777;
+
+  /* utility colors */
+  --c-water: #2563eb;
+  --c-electricity: #d97706;
+  --c-gas: #ea580c;
+  --c-waste: #16a34a;
+  --c-internet: #7c3aed;
+  --c-phone: #db2777;
+  --c-other: #64748b;
+
+  --radius: 6px;
+  --font-mono: 'IBM Plex Mono', monospace;
+  --font-sans: 'IBM Plex Sans', sans-serif;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: var(--bg-0);
+  color: var(--text-0);
+  font-family: var(--font-sans);
+  font-size: 14px;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* ── SCROLLBAR ── */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: var(--bg-0); }
+::-webkit-scrollbar-thumb { background: var(--border-light); border-radius: 3px; }
+
+/* ── HEADER ── */
+.header {
+  background: var(--bg-1);
+  border-bottom: 1px solid var(--border);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.07);
+  padding: 0 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 56px;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+.logo {
+  font-family: var(--font-mono);
+  font-weight: 600;
+  font-size: 15px;
+  letter-spacing: 0.15em;
+  color: var(--amber);
+}
+.logo span { color: var(--text-2); font-weight: 300; }
+.header-actions { display: flex; gap: 8px; align-items: center; }
+.save-indicator {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--text-2);
+  letter-spacing: 0.05em;
+}
+.save-indicator.saved { color: var(--green); }
+
+/* ── NAV TABS ── */
+.nav {
+  background: var(--bg-1);
+  border-bottom: 1px solid var(--border);
+  padding: 0 24px;
+  display: flex;
+  gap: 0;
+}
+.nav-tab {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-2);
+  padding: 12px 16px;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  transition: all 0.15s;
+  border: none;
+  background: none;
+}
+.nav-tab:hover { color: var(--text-1); }
+.nav-tab.active { color: var(--amber); border-bottom: 2px solid var(--amber); }
+
+/* ── MAIN ── */
+.main { padding: 24px; max-width: 1400px; margin: 0 auto; }
+
+.page { display: none; }
+.page.active { display: block; }
+
+/* ── CARDS ── */
+.card {
+  background: var(--bg-1);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px;
+}
+.card-title {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-2);
+  margin-bottom: 16px;
+}
+
+/* ── DASHBOARD GRID ── */
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 12px;
+  margin-bottom: 24px;
+}
+.utility-card {
+  background: var(--bg-1);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px;
+  position: relative;
+  overflow: hidden;
+  transition: border-color 0.2s;
+}
+.utility-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+}
+.utility-card.water::before { background: var(--c-water); }
+.utility-card.electricity::before { background: var(--c-electricity); }
+.utility-card.gas::before { background: var(--c-gas); }
+.utility-card.waste::before { background: var(--c-waste); }
+.utility-card.internet::before { background: var(--c-internet); }
+.utility-card.phone::before { background: var(--c-phone); }
+.utility-card.other::before { background: var(--c-other); }
+
+.utility-card:hover { border-color: var(--border-light); }
+.uc-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 14px; }
+.uc-name { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-2); }
+.uc-icon { font-size: 18px; }
+.uc-amount { font-family: var(--font-mono); font-size: 26px; font-weight: 600; color: var(--text-0); }
+.uc-amount .eur { font-size: 14px; color: var(--text-2); margin-right: 2px; }
+.uc-meta { margin-top: 8px; font-family: var(--font-mono); font-size: 10px; color: var(--text-2); }
+.uc-trend { display: flex; align-items: center; gap: 4px; margin-top: 8px; font-family: var(--font-mono); font-size: 11px; }
+.trend-up { color: var(--red); }
+.trend-down { color: var(--green); }
+.trend-flat { color: var(--text-2); }
+
+.summary-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-bottom: 24px;
+}
+.summary-card {
+  background: var(--bg-1);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px;
+}
+.sc-label { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-2); margin-bottom: 8px; }
+.sc-value { font-family: var(--font-mono); font-size: 28px; font-weight: 600; }
+.sc-value.amber { color: var(--amber); }
+.sc-value.teal { color: var(--teal); }
+.sc-sub { font-family: var(--font-mono); font-size: 10px; color: var(--text-2); margin-top: 4px; }
+
+/* ── DASHBOARD CHART ROW ── */
+.chart-row { display: grid; grid-template-columns: 2fr 1fr; gap: 12px; margin-bottom: 24px; }
+.chart-container { position: relative; height: 240px; }
+
+/* ── DATA ENTRY ── */
+.entry-layout { display: grid; grid-template-columns: 220px 1fr; gap: 20px; }
+.utility-list { display: flex; flex-direction: column; gap: 4px; }
+.utility-btn {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 14px;
+  border-radius: var(--radius);
+  border: 1px solid transparent;
+  background: none;
+  cursor: pointer;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  color: var(--text-1);
+  text-align: left;
+  transition: all 0.15s;
+}
+.utility-btn:hover { background: var(--bg-2); border-color: var(--border); }
+.utility-btn.active { background: var(--bg-3); border-color: var(--border-light); color: var(--text-0); }
+.utility-btn .dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+
+.entry-panel { flex: 1; }
+.entry-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+.entry-title { font-family: var(--font-mono); font-size: 16px; font-weight: 600; }
+
+/* Table of entries */
+.entries-table { width: 100%; border-collapse: collapse; }
+.entries-table th {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-2);
+  padding: 8px 10px;
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+}
+.entries-table td {
+  padding: 10px;
+  border-bottom: 1px solid var(--border);
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+.entries-table tr:hover td { background: var(--bg-2); }
+.entries-table tr.disabled td { opacity: 0.4; }
+
+.month-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 3px;
+  font-size: 10px;
+  background: var(--bg-3);
+  border: 1px solid var(--border);
+}
+.comment-text { color: var(--text-2); font-size: 10px; max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* ── FORM ── */
+.form-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px; margin-bottom: 12px; }
+.form-group { display: flex; flex-direction: column; gap: 5px; }
+.form-label { font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-2); }
+.form-input, .form-select, .form-textarea {
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text-0);
+  font-family: var(--font-mono);
+  font-size: 13px;
+  padding: 8px 10px;
+  transition: border-color 0.15s;
+  outline: none;
+}
+.form-input:focus, .form-select:focus, .form-textarea:focus {
+  border-color: var(--amber);
+}
+.form-textarea { resize: vertical; min-height: 60px; }
+.form-select option { background: var(--bg-2); }
+
+/* Electricity tariff grid */
+.tariff-grid { display: grid; gap: 10px; }
+.tariff-row {
+  display: grid;
+  grid-template-columns: 1fr 130px 130px;
+  gap: 10px;
+  align-items: center;
+  padding: 10px 12px;
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+.tariff-name { font-family: var(--font-mono); font-size: 12px; }
+.tariff-color-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 6px; }
+
+/* ── BUTTONS ── */
+.btn {
+  padding: 8px 16px;
+  border-radius: var(--radius);
+  border: none;
+  cursor: pointer;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  transition: all 0.15s;
+}
+.btn-primary { background: var(--amber); color: #fff; font-weight: 600; }
+.btn-primary:hover { background: #b45309; }
+.btn-ghost { background: transparent; border: 1px solid var(--border); color: var(--text-1); }
+.btn-ghost:hover { border-color: var(--border-light); color: var(--text-0); }
+.btn-danger { background: transparent; border: 1px solid var(--red); color: var(--red); }
+.btn-danger:hover { background: rgba(248,113,113,0.1); }
+.btn-sm { padding: 4px 10px; font-size: 10px; }
+.btn-teal { background: var(--teal); color: #fff; font-weight: 600; }
+.btn-teal:hover { background: #0f766e; }
+
+/* ── TOGGLE ── */
+.toggle { position: relative; width: 36px; height: 20px; flex-shrink: 0; }
+.toggle input { opacity: 0; width: 0; height: 0; }
+.toggle-slider {
+  position: absolute; inset: 0;
+  background: var(--bg-3);
+  border: 1px solid var(--border-light);
+  border-radius: 10px;
+  cursor: pointer;
+  transition: 0.2s;
+}
+.toggle-slider::before {
+  content: '';
+  position: absolute;
+  height: 14px; width: 14px;
+  left: 2px; bottom: 2px;
+  background: var(--text-2);
+  border-radius: 50%;
+  transition: 0.2s;
+}
+.toggle input:checked + .toggle-slider { background: var(--amber-dim); border-color: var(--amber); }
+.toggle input:checked + .toggle-slider::before { transform: translateX(16px); background: var(--amber); }
+.fc-toggle-row .toggle { width: 28px; height: 16px; }
+.fc-toggle-row .toggle-slider::before { height: 10px; width: 10px; }
+.fc-toggle-row .toggle input:checked + .toggle-slider::before { transform: translateX(12px); }
+
+/* ── CHARTS PAGE ── */
+.charts-controls { display: flex; gap: 12px; align-items: center; margin-bottom: 20px; flex-wrap: wrap; }
+.period-btn {
+  padding: 5px 12px;
+  border-radius: 3px;
+  border: 1px solid var(--border);
+  background: none;
+  color: var(--text-2);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.period-btn:hover { border-color: var(--amber); color: var(--amber); }
+.period-btn.active { border-color: var(--amber); background: var(--amber-glow); color: var(--amber); }
+
+.charts-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.chart-full { grid-column: 1 / -1; }
+.chart-wrapper { background: var(--bg-1); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; }
+.chart-wrapper .chart-container { height: 280px; }
+
+/* ── FORECAST ── */
+.forecast-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; }
+.forecast-card {
+  background: var(--bg-1);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px;
+  position: relative;
+  overflow: hidden;
+}
+.forecast-card::after {
+  content: 'FORECAST';
+  position: absolute;
+  top: 10px; right: -18px;
+  font-family: var(--font-mono);
+  font-size: 7px;
+  letter-spacing: 0.1em;
+  color: var(--text-2);
+  transform: rotate(90deg);
+}
+.fc-utility { font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-2); margin-bottom: 8px; }
+.fc-amount { font-family: var(--font-mono); font-size: 22px; font-weight: 600; color: var(--teal); }
+.fc-basis { font-family: var(--font-mono); font-size: 9px; color: var(--text-2); margin-top: 4px; }
+.fc-annual { font-family: var(--font-mono); font-size: 11px; color: var(--text-1); margin-top: 8px; border-top: 1px solid var(--border); padding-top: 8px; }
+.fc-3mavg { font-family: var(--font-mono); font-size: 10px; color: var(--text-2); margin-top: 4px; }
+.forecast-card.inactive { opacity: 0.45; }
+.forecast-card.inactive .fc-amount { color: var(--text-2); text-decoration: line-through; }
+.fc-inactive-badge { display: inline-block; font-family: var(--font-mono); font-size: 8px; letter-spacing: 0.08em; background: var(--bg-3); border: 1px solid var(--border-light); color: var(--text-2); border-radius: 3px; padding: 1px 5px; margin-left: 6px; vertical-align: middle; }
+
+/* ── ANNUAL SUMMARY ── */
+.annual-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 10px; margin-bottom: 20px; }
+.annual-year-card { background: var(--bg-1); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px; }
+.ayc-year { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.1em; color: var(--text-2); margin-bottom: 6px; }
+.ayc-total { font-family: var(--font-mono); font-size: 20px; font-weight: 600; color: var(--amber); }
+.ayc-sub { font-family: var(--font-mono); font-size: 9px; color: var(--text-2); margin-top: 3px; }
+.ayc-yoy { font-family: var(--font-mono); font-size: 10px; margin-top: 6px; }
+.annual-breakdown-table { width: 100%; border-collapse: collapse; font-family: var(--font-mono); font-size: 11px; }
+.annual-breakdown-table th { font-size: 9px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-2); padding: 6px 10px; text-align: left; border-bottom: 1px solid var(--border); }
+.annual-breakdown-table td { padding: 7px 10px; border-bottom: 1px solid var(--border); }
+.annual-breakdown-table tr:hover td { background: var(--bg-2); }
+.annual-breakdown-table tr:last-child td { border-bottom: none; }
+.forecast-controls { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 16px; align-items: center; }
+.fc-toggle-row { display: flex; align-items: center; gap: 8px; padding: 6px 10px; background: var(--bg-2); border: 1px solid var(--border); border-radius: var(--radius); font-family: var(--font-mono); font-size: 10px; color: var(--text-1); }
+
+/* ── SETTINGS ── */
+.settings-section { margin-bottom: 28px; }
+.dbx-row { display:flex; align-items:center; gap:8px; font-size:13px; color:var(--text-1); }
+.dbx-sub { font-size:12px; color:var(--text-2); margin-top:4px; }
+.dbx-label { display:block; font-family:var(--font-mono); font-size:10px; letter-spacing:0.1em; text-transform:uppercase; color:var(--text-2); margin-bottom:6px; }
+.dbx-input { width:100%; max-width:420px; padding:9px 11px; background:var(--bg-2); border:1px solid var(--border); border-radius:var(--radius); color:var(--text-1); font-family:var(--font-mono); font-size:13px; }
+.dbx-input:focus { outline:none; border-color:var(--accent, #60a5fa); }
+.dbx-dot { width:9px; height:9px; border-radius:50%; display:inline-block; background:var(--text-2); }
+.dbx-dot.dbx-synced { background:#4ade80; box-shadow:0 0 6px #4ade80; }
+.dbx-dot.dbx-syncing, .dbx-dot.dbx-connecting { background:#f5a623; }
+.dbx-dot.dbx-error { background:var(--red); }
+.dbx-dot.dbx-offline { background:var(--text-2); }
+#dropboxSettings code { font-size:11px; background:var(--bg-2); padding:2px 6px; border-radius:4px; }
+.settings-title { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-2); margin-bottom: 14px; border-bottom: 1px solid var(--border); padding-bottom: 8px; }
+.tariff-config { display: flex; flex-direction: column; gap: 8px; }
+.tariff-config-row {
+  display: grid;
+  grid-template-columns: 30px 1fr 120px 120px 100px 80px;
+  gap: 8px;
+  align-items: center;
+  padding: 8px 12px;
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+.tariff-handle { color: var(--text-2); cursor: grab; text-align: center; }
+.color-swatch { width: 20px; height: 20px; border-radius: 50%; border: 2px solid var(--border); cursor: pointer; }
+
+/* ── MODAL ── */
+.modal-overlay {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.35);
+  z-index: 200;
+  display: flex; align-items: center; justify-content: center;
+  padding: 20px;
+  backdrop-filter: blur(4px);
+}
+.modal-overlay.hidden { display: none; }
+.modal {
+  background: var(--bg-1);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius);
+  padding: 28px;
+  width: 100%;
+  max-width: 580px;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+.modal-title { font-family: var(--font-mono); font-size: 14px; font-weight: 600; margin-bottom: 20px; color: var(--amber); }
+.modal-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 20px; }
+
+/* ── ELECTRICITY SPECIAL ── */
+.elec-tariff-entry { background: var(--bg-2); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px; margin-bottom: 8px; }
+.elec-tariff-header { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+.elec-tariff-label { font-family: var(--font-mono); font-size: 11px; font-weight: 500; }
+
+/* ── SECTION DIVIDER ── */
+.divider { height: 1px; background: var(--border); margin: 20px 0; }
+
+/* ── EMPTY STATE ── */
+.empty-state { text-align: center; padding: 48px 24px; }
+.empty-state .es-icon { font-size: 32px; margin-bottom: 12px; }
+.empty-state .es-text { font-family: var(--font-mono); font-size: 12px; color: var(--text-2); }
+
+/* ── NOTIFICATION ── */
+.notification {
+  position: fixed;
+  bottom: 20px; right: 20px;
+  background: var(--bg-3);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius);
+  padding: 10px 16px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  z-index: 300;
+  transform: translateY(80px);
+  opacity: 0;
+  transition: all 0.25s;
+}
+.notification.show { transform: translateY(0); opacity: 1; }
+.notification.success { border-color: var(--green); color: var(--green); }
+.notification.info { border-color: var(--teal); color: var(--teal); }
+
+/* ── RESPONSIVE HELPERS ── */
+.flex { display: flex; }
+.flex-col { flex-direction: column; }
+.gap-8 { gap: 8px; }
+.gap-12 { gap: 12px; }
+.items-center { align-items: center; }
+.justify-between { justify-content: space-between; }
+.mb-16 { margin-bottom: 16px; }
+.mb-20 { margin-bottom: 20px; }
+.text-mono { font-family: var(--font-mono); }
+.text-dim { color: var(--text-2); }
+.text-sm { font-size: 11px; }
+
+.action-btns { display: flex; gap: 4px; }
+
+/* ── ENTRY TOOLBAR ── */
+.entry-toolbar {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  padding: 12px 16px;
+  background: var(--bg-0);
+  border-bottom: 1px solid var(--border);
+  flex-wrap: wrap;
+}
+.entry-toolbar .form-input,
+.entry-toolbar .form-select {
+  padding: 5px 9px;
+  font-size: 11px;
+  height: 30px;
+}
+.toolbar-sep { width: 1px; height: 20px; background: var(--border); flex-shrink: 0; }
+.sort-btn {
+  display: flex; align-items: center; gap: 4px;
+  padding: 5px 10px;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: none;
+  color: var(--text-2);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.05em;
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+.sort-btn:hover { border-color: var(--border-light); color: var(--text-1); }
+.sort-btn.active { border-color: var(--amber); color: var(--amber); background: var(--amber-glow); }
+.sort-arrow { font-size: 9px; }
+.toolbar-label { font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-2); white-space: nowrap; }
+.entry-count { font-family: var(--font-mono); font-size: 10px; color: var(--text-2); margin-left: auto; white-space: nowrap; }
+</style>
+</head>
+<body>
+
+<header class="header">
+  <div class="logo">ELEKTRARNISKA20<span> // UTILITY TRACKER</span></div>
+  <div class="header-actions">
+    <span class="save-indicator" id="saveIndicator">● AUTO-SAVE ON</span>
+    <span class="save-indicator" id="dropboxIndicator" title="Dropbox sync status" style="cursor:pointer" onclick="showPage('settings', document.querySelector('.nav-tab:last-of-type'))">○ DROPBOX OFF</span>
+    <button class="btn btn-ghost btn-sm" onclick="exportData()">↑ EXPORT</button>
+    <button class="btn btn-ghost btn-sm" onclick="document.getElementById('importFile').click()">↓ IMPORT</button>
+    <input type="file" id="importFile" accept=".json" style="display:none" onchange="importData(event)">
+  </div>
+</header>
+
+<nav class="nav">
+  <button class="nav-tab active" onclick="showPage('dashboard', this)">Dashboard</button>
+  <button class="nav-tab" onclick="showPage('entry', this)">Data Entry</button>
+  <button class="nav-tab" onclick="showPage('charts', this)">Charts</button>
+  <button class="nav-tab" onclick="showPage('forecast', this)">Forecast</button>
+  <button class="nav-tab" onclick="showPage('annual', this)">Annual Summary</button>
+  <button class="nav-tab" onclick="showPage('settings', this)">Settings</button>
+</nav>
+
+<main class="main">
+
+  <!-- ══════════════════════════════ DASHBOARD ══════════════════════════════ -->
+  <div class="page active" id="page-dashboard">
+    <div class="summary-row" id="summaryRow"></div>
+    <div class="dashboard-grid" id="dashboardGrid"></div>
+    <div class="chart-row">
+      <div class="chart-wrapper" style="grid-column:1/-1">
+        <div class="card-title">LAST 12 MONTHS — TOTAL MONTHLY COST</div>
+        <div class="chart-container"><canvas id="dashChart"></canvas></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════ DATA ENTRY ══════════════════════════════ -->
+  <div class="page" id="page-entry">
+    <div class="entry-layout">
+      <div>
+        <div class="card-title" style="padding-left:14px">UTILITIES</div>
+        <div class="utility-list" id="utilityList"></div>
+      </div>
+      <div class="entry-panel">
+        <div class="entry-header">
+          <div class="entry-title" id="entryTitle">—</div>
+          <button class="btn btn-primary" onclick="openAddModal()" title="Add entry (Ctrl+Shift+E)">+ ADD ENTRY <span style="font-size:9px;opacity:0.7;font-weight:400">Ctrl+Shift+E</span></button>
+        </div>
+        <div class="card" style="padding:0;overflow:hidden">
+          <div id="entryTableWrap"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════ CHARTS ══════════════════════════════ -->
+  <div class="page" id="page-charts">
+    <div class="charts-controls">
+      <span class="text-mono text-dim text-sm">PERIOD:</span>
+      <button class="period-btn" onclick="setPeriod(3,this)">3M</button>
+      <button class="period-btn active" onclick="setPeriod(12,this)">12M</button>
+      <button class="period-btn" onclick="setPeriod(24,this)">24M</button>
+      <button class="period-btn" onclick="setPeriod(999,this)">ALL</button>
+      <div style="margin-left:8px; display:flex; gap:8px; align-items:center">
+        <span class="text-mono text-dim text-sm">FROM:</span>
+        <input type="month" class="form-input" id="customFrom" style="padding:4px 8px;font-size:11px" onchange="setCustomPeriod()">
+        <span class="text-mono text-dim text-sm">TO:</span>
+        <input type="month" class="form-input" id="customTo" style="padding:4px 8px;font-size:11px" onchange="setCustomPeriod()">
+      </div>
+    </div>
+    <div class="charts-grid">
+      <div class="chart-wrapper chart-full">
+        <div class="card-title">TOTAL MONTHLY COST — ALL UTILITIES</div>
+        <div class="chart-container"><canvas id="totalCostChart"></canvas></div>
+      </div>
+      <div class="chart-wrapper">
+        <div class="card-title">COST BY UTILITY</div>
+        <div class="chart-container"><canvas id="utilityBreakdownChart"></canvas></div>
+      </div>
+      <div class="chart-wrapper">
+        <div class="card-title">UTILITY SHARE (SELECTED PERIOD)</div>
+        <div class="chart-container" style="height:240px"><canvas id="pieChart"></canvas></div>
+      </div>
+      <div class="chart-wrapper">
+        <div class="card-title">WATER CONSUMPTION (m³)</div>
+        <div class="chart-container"><canvas id="waterChart"></canvas></div>
+      </div>
+      <div class="chart-wrapper">
+        <div class="card-title">ELECTRICITY CONSUMPTION (kWh)</div>
+        <div class="chart-container"><canvas id="electricChart"></canvas></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════ FORECAST ══════════════════════════════ -->
+  <div class="page" id="page-forecast">
+    <div class="flex justify-between items-center mb-20">
+      <div>
+        <div class="text-mono" style="font-size:18px;font-weight:600">Next Month Forecast</div>
+        <div class="text-mono text-dim text-sm" style="margin-top:4px" id="forecastSubtitle"></div>
+      </div>
+      <div id="forecastTotal" class="summary-card" style="min-width:200px;text-align:right"></div>
+    </div>
+    <div style="margin-bottom:14px">
+      <div class="text-mono text-dim text-sm" style="margin-bottom:8px">UTILITY FORECAST TOGGLES</div>
+      <div class="forecast-controls" id="forecastControls"></div>
+    </div>
+    <div class="forecast-grid" id="forecastGrid"></div>
+    <div class="divider"></div>
+    <div class="card-title">ANNUAL PROJECTION</div>
+    <div class="chart-wrapper" style="margin-top:12px">
+      <div class="chart-container"><canvas id="forecastChart"></canvas></div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════ ANNUAL SUMMARY ══════════════════════════════ -->
+  <div class="page" id="page-annual">
+    <div class="flex justify-between items-center mb-20">
+      <div>
+        <div class="text-mono" style="font-size:18px;font-weight:600">Annual Summary</div>
+        <div class="text-mono text-dim text-sm" style="margin-top:4px">Year-over-year comparison</div>
+      </div>
+    </div>
+    <div class="annual-grid" id="annualYearCards"></div>
+    <div class="divider"></div>
+    <div class="card-title" style="margin-bottom:12px">BREAKDOWN BY UTILITY PER YEAR</div>
+    <div class="chart-wrapper" style="margin-bottom:16px">
+      <div class="chart-container" style="height:300px"><canvas id="annualChart"></canvas></div>
+    </div>
+    <div id="annualBreakdownTable"></div>
+  </div>
+
+  <!-- ══════════════════════════════ SETTINGS ══════════════════════════════ -->
+  <div class="page" id="page-settings">
+    <div class="settings-section">
+      <div class="settings-title">ELECTRICITY TARIFF BANDS</div>
+      <div class="tariff-config" id="tariffConfig"></div>
+      <button class="btn btn-ghost btn-sm" style="margin-top:10px" onclick="addTariffBand()">+ ADD BAND</button>
+    </div>
+    <div class="settings-section">
+      <div class="settings-title">CLOUD SYNC — DROPBOX</div>
+      <div id="dropboxSettings"></div>
+    </div>
+    <div class="settings-section">
+      <div class="settings-title">DATA MANAGEMENT</div>
+      <div class="flex gap-8">
+        <button class="btn btn-ghost" onclick="exportData()">↑ EXPORT JSON BACKUP</button>
+        <button class="btn btn-ghost" onclick="document.getElementById('importFile').click()">↓ IMPORT JSON</button>
+        <button class="btn btn-danger" onclick="clearAllData()">⚠ CLEAR ALL DATA</button>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<!-- ══════════════════════════════ ADD/EDIT MODAL ══════════════════════════════ -->
+<div class="modal-overlay hidden" id="modalOverlay">
+  <div class="modal">
+    <div class="modal-title" id="modalTitle">ADD ENTRY</div>
+
+    <div class="form-grid">
+      <div class="form-group">
+        <label class="form-label">Year</label>
+        <input type="number" class="form-input" id="fYear" min="2000" max="2099" placeholder="2025">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Month</label>
+        <select class="form-select" id="fMonth">
+          <option value="1">January</option><option value="2">February</option>
+          <option value="3">March</option><option value="4">April</option>
+          <option value="5">May</option><option value="6">June</option>
+          <option value="7">July</option><option value="8">August</option>
+          <option value="9">September</option><option value="10">October</option>
+          <option value="11">November</option><option value="12">December</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Amount (€)</label>
+        <input type="number" class="form-input" id="fAmount" step="0.01" min="0" placeholder="0.00">
+      </div>
+    </div>
+
+    <!-- Utility-specific fields -->
+    <div id="specificFields"></div>
+
+    <div class="form-group" style="margin-bottom:12px">
+      <label class="form-label">Comment / Notes</label>
+      <textarea class="form-textarea" id="fComment" placeholder="Any special charges, adjustments, notes…"></textarea>
+    </div>
+
+    <div class="flex items-center gap-8" style="margin-bottom:4px">
+      <label class="toggle">
+        <input type="checkbox" id="fEnabled" checked>
+        <span class="toggle-slider"></span>
+      </label>
+      <span class="text-mono text-sm" style="color:var(--text-1)">Include in charts & calculations</span>
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal()">CANCEL</button>
+      <button class="btn btn-primary" onclick="saveEntry()">SAVE ENTRY</button>
+    </div>
+  </div>
+</div>
+
+<div class="notification" id="notification"></div>
+
+<script>
+// ═══════════════════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════════════════
+const UTILITIES = [
+  { id: 'water',       label: 'Water',       icon: '💧', color: '#60a5fa', unit: 'm³',   hasConsumption: true  },
+  { id: 'electricity', label: 'Electricity', icon: '⚡', color: '#f5a623', unit: 'kWh',  hasConsumption: true, hasTariffs: true },
+  { id: 'gas',         label: 'Gas',         icon: '🔥', color: '#fb923c', unit: 'm³',   hasConsumption: true  },
+  { id: 'waste',       label: 'Waste',       icon: '♻️', color: '#4ade80', unit: null,   hasConsumption: false },
+  { id: 'internet',    label: 'Internet',    icon: '🌐', color: '#a78bfa', unit: null,   hasConsumption: false },
+  { id: 'phone',       label: 'Phone',       icon: '📱', color: '#f472b6', unit: null,   hasConsumption: false },
+  { id: 'other',       label: 'Other',       icon: '🧾', color: '#94a3b8', unit: null,   hasConsumption: false },
+];
+
+const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+let state = {
+  entries: [],       // { id, utility, year, month, amount, consumption, tariffBreakdown, comment, enabled }
+  tariffBands: [     // default electricity tariff bands
+    { id: 't1', name: 'Peak',     color: '#f5a623', ratePerKwh: 0 },
+    { id: 't2', name: 'Off-Peak', color: '#60a5fa', ratePerKwh: 0 },
+  ],
+};
+
+let currentUtility = 'water';
+let editingId = null;
+let chartPeriodMonths = 12;
+let customFrom = null;
+let customTo = null;
+let entrySort = { field: 'date', dir: 'desc' };
+let entryFilter = { year: '', enabled: 'all', search: '' };
+
+const charts = {};
+
+// ═══════════════════════════════════════════════════════════
+// PERSISTENCE
+// ═══════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════
+// STORAGE — IndexedDB (works on file://, http://, https://)
+// ═══════════════════════════════════════════════════════════
+const DB_NAME = 'elektrarniska20';
+const DB_STORE = 'state';
+const DB_KEY = 'main';
+let db = null;
+
+function openDB() {
+  return new Promise((resolve, reject) => {
+    if (db) return resolve(db);
+    const req = indexedDB.open(DB_NAME, 1);
+    req.onupgradeneeded = e => e.target.result.createObjectStore(DB_STORE);
+    req.onsuccess = e => { db = e.target.result; resolve(db); };
+    req.onerror = e => reject(e.target.error);
+  });
+}
+
+function setSaveIndicator(status) {
+  const ind = document.getElementById('saveIndicator');
+  if (!ind) return;
+  if (status === 'saving') {
+    ind.textContent = '● SAVING…';
+    ind.className = 'save-indicator';
+    ind.style.color = '';
+    ind.title = '';
+  } else if (status === 'saved') {
+    ind.textContent = '● SAVED';
+    ind.className = 'save-indicator saved';
+    ind.style.color = '';
+    ind.title = '';
+    setTimeout(() => {
+      ind.textContent = '● AUTO-SAVE ON';
+      ind.className = 'save-indicator';
+    }, 1500);
+  } else if (status === 'error') {
+    ind.textContent = '⚠ SAVE FAILED';
+    ind.className = 'save-indicator';
+    ind.style.color = 'var(--red)';
+  }
+}
+
+function saveState() {
+  state._lastModified = Date.now();
+  openDB().then(db => {
+    const tx = db.transaction(DB_STORE, 'readwrite');
+    tx.objectStore(DB_STORE).put(JSON.parse(JSON.stringify(state)), DB_KEY);
+    tx.oncomplete = () => { setSaveIndicator('saved'); Dropbox.scheduleUpload(); };
+    tx.onerror = e => { console.error('saveState failed:', e.target.error); setSaveIndicator('error'); };
+  }).catch(e => { console.error('openDB failed:', e); setSaveIndicator('error'); });
+}
+
+function loadState() {
+  return new Promise(resolve => {
+    openDB().then(db => {
+      const tx = db.transaction(DB_STORE, 'readonly');
+      const req = tx.objectStore(DB_STORE).get(DB_KEY);
+      req.onsuccess = e => {
+        if (e.target.result) {
+          state = { ...state, ...e.target.result };
+        }
+        resolve();
+      };
+      req.onerror = () => resolve();
+    }).catch(() => resolve());
+  });
+}
+
+function checkStorageAvailable() { return typeof indexedDB !== 'undefined'; }
+
+// ═══════════════════════════════════════════════════════════
+// DROPBOX CLOUD SYNC (PKCE, refresh-token, no app secret)
+// ═══════════════════════════════════════════════════════════
+const Dropbox = (() => {
+  const FILE_PATH = '/elektrarniska20.json';        // inside the app's own App-folder
+  const LS = {
+    appKey:  'dbx_app_key',
+    refresh: 'dbx_refresh_token',
+    pkce:    'dbx_pkce_verifier',
+    enabled: 'dbx_enabled',
+  };
+  let accessToken = null;       // short-lived, kept in memory only
+  let accessExpiry = 0;
+  let uploadTimer = null;
+  let status = 'off';           // off | connecting | synced | syncing | offline | error
+  let lastError = '';
+
+  const cfg = {
+    get appKey()  { return localStorage.getItem(LS.appKey) || ''; },
+    set appKey(v) { v ? localStorage.setItem(LS.appKey, v) : localStorage.removeItem(LS.appKey); },
+    get refresh() { return localStorage.getItem(LS.refresh) || ''; },
+    set refresh(v){ v ? localStorage.setItem(LS.refresh, v) : localStorage.removeItem(LS.refresh); },
+    get enabled() { return localStorage.getItem(LS.enabled) === '1'; },
+    set enabled(v){ v ? localStorage.setItem(LS.enabled, '1') : localStorage.removeItem(LS.enabled); },
+  };
+
+  function isConnected() { return !!cfg.refresh && cfg.enabled; }
+
+  function setStatus(s, err) {
+    status = s; lastError = err || '';
+    const ind = document.getElementById('dropboxIndicator');
+    if (ind) {
+      const map = {
+        off:        ['○ DROPBOX OFF', 'var(--text-2)'],
+        connecting: ['◐ CONNECTING…', ''],
+        synced:     ['● DROPBOX SYNCED', 'var(--green, #4ade80)'],
+        syncing:    ['◐ SYNCING…', ''],
+        offline:    ['○ OFFLINE', 'var(--text-2)'],
+        error:      ['⚠ SYNC ERROR', 'var(--red)'],
+      };
+      const [txt, col] = map[s] || map.off;
+      ind.textContent = txt;
+      ind.style.color = col;
+      ind.title = err ? 'Dropbox: ' + err : 'Dropbox sync status';
+    }
+    renderSettingsIfOpen();
+  }
+
+  // ---- PKCE helpers ----
+  function b64url(buf) {
+    return btoa(String.fromCharCode(...new Uint8Array(buf)))
+      .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  }
+  async function sha256(str) {
+    return crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
+  }
+  function randomVerifier() {
+    const a = new Uint8Array(64); crypto.getRandomValues(a);
+    return b64url(a.buffer);
+  }
+  function redirectUri() {
+    // Works on file:// (origin is "null") and on http(s) origins alike.
+    return (location.origin && location.origin !== 'null')
+      ? location.origin + location.pathname
+      : '';   // empty → Dropbox shows the code on-screen to copy/paste
+  }
+
+  // ---- Step 1: start auth ----
+  async function connect() {
+    const key = (document.getElementById('dbxAppKeyInput')?.value || cfg.appKey).trim();
+    if (!key) { notify('Enter your Dropbox App key first', 'info'); return; }
+    cfg.appKey = key;
+    const verifier = randomVerifier();
+    sessionStorage.setItem(LS.pkce, verifier);
+    const challenge = b64url(await sha256(verifier));
+    const ru = redirectUri();
+    const params = new URLSearchParams({
+      client_id: key,
+      response_type: 'code',
+      code_challenge: challenge,
+      code_challenge_method: 'S256',
+      token_access_type: 'offline',          // <- yields a refresh token
+    });
+    if (ru) params.set('redirect_uri', ru);
+    const url = 'https://www.dropbox.com/oauth2/authorize?' + params.toString();
+    setStatus('connecting');
+    window.open(url, '_blank', 'noopener');
+    // Reveal the paste-code box (used on file:// and as a fallback everywhere)
+    const box = document.getElementById('dbxCodeBox');
+    if (box) box.style.display = 'block';
+    notify('Authorize in the new tab, then paste the code back here', 'success');
+  }
+
+  // ---- Step 2: exchange auth code → refresh token ----
+  async function finishConnect(codeFromRedirect) {
+    const code = (codeFromRedirect || document.getElementById('dbxCodeInput')?.value || '').trim();
+    if (!code) { notify('Paste the authorization code', 'info'); return; }
+    const verifier = sessionStorage.getItem(LS.pkce);
+    if (!verifier) { notify('Session expired — click Connect again', 'info'); return; }
+    setStatus('connecting');
+    try {
+      const ru = redirectUri();
+      const body = new URLSearchParams({
+        code, grant_type: 'authorization_code',
+        client_id: cfg.appKey, code_verifier: verifier,
+      });
+      if (ru) body.set('redirect_uri', ru);
+      const res = await fetch('https://api.dropboxapi.com/oauth2/token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: body.toString(),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.refresh_token) throw new Error(data.error_description || data.error || 'Token exchange failed');
+      cfg.refresh = data.refresh_token;
+      cfg.enabled = true;
+      accessToken = data.access_token;
+      accessExpiry = Date.now() + (data.expires_in || 14400) * 1000 - 60000;
+      sessionStorage.removeItem(LS.pkce);
+      notify('Dropbox connected ✓', 'success');
+      // First sync: pull cloud, merge, then push.
+      await syncOnOpen(true);
+      renderSettings();
+    } catch (e) {
+      setStatus('error', e.message);
+      notify('Connect failed: ' + e.message, 'info');
+    }
+  }
+
+  function disconnect() {
+    cfg.refresh = ''; cfg.enabled = false;
+    accessToken = null; accessExpiry = 0;
+    setStatus('off');
+    notify('Dropbox disconnected (local data kept)', 'info');
+    renderSettings();
+  }
+
+  // ---- Step 3: refresh access token on demand ----
+  async function ensureAccessToken() {
+    if (accessToken && Date.now() < accessExpiry) return accessToken;
+    if (!cfg.refresh) throw new Error('Not connected');
+    const res = await fetch('https://api.dropboxapi.com/oauth2/token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({
+        grant_type: 'refresh_token',
+        refresh_token: cfg.refresh,
+        client_id: cfg.appKey,
+      }).toString(),
+    });
+    const data = await res.json();
+    if (!res.ok || !data.access_token) {
+      if (data.error === 'invalid_grant') { disconnect(); throw new Error('Authorization revoked — reconnect'); }
+      throw new Error(data.error_description || data.error || 'Token refresh failed');
+    }
+    accessToken = data.access_token;
+    accessExpiry = Date.now() + (data.expires_in || 14400) * 1000 - 60000;
+    return accessToken;
+  }
+
+  // ---- Download remote state ----
+  async function download() {
+    const token = await ensureAccessToken();
+    const res = await fetch('https://content.dropboxapi.com/2/files/download', {
+      method: 'POST',
+      headers: {
+        'Authorization': 'Bearer ' + token,
+        'Dropbox-API-Arg': JSON.stringify({ path: FILE_PATH }),
+      },
+    });
+    if (res.status === 409) return null;          // file not found yet
+    if (!res.ok) {
+      const errTxt = res.headers.get('dropbox-api-result') || (await res.text());
+      if (errTxt && errTxt.includes('not_found')) return null;
+      throw new Error('Download failed (' + res.status + ')');
+    }
+    const text = await res.text();
+    return JSON.parse(text);
+  }
+
+  // ---- Upload current state ----
+  async function upload() {
+    const token = await ensureAccessToken();
+    const res = await fetch('https://content.dropboxapi.com/2/files/upload', {
+      method: 'POST',
+      headers: {
+        'Authorization': 'Bearer ' + token,
+        'Content-Type': 'application/octet-stream',
+        'Dropbox-API-Arg': JSON.stringify({
+          path: FILE_PATH, mode: 'overwrite', mute: true,
+        }),
+      },
+      body: JSON.stringify(state),
+    });
+    if (!res.ok) throw new Error('Upload failed (' + res.status + ')');
+  }
+
+  // ---- Debounced upload after edits ----
+  function scheduleUpload() {
+    if (!isConnected()) return;
+    clearTimeout(uploadTimer);
+    setStatus('syncing');
+    uploadTimer = setTimeout(async () => {
+      try { await upload(); setStatus('synced'); }
+      catch (e) { setStatus(navigator.onLine ? 'error' : 'offline', e.message); }
+    }, 1500);
+  }
+
+  // ---- On-open reconcile: newest wins, never let empty clobber real data ----
+  async function syncOnOpen(isFirstConnect) {
+    if (!isConnected()) { setStatus('off'); return; }
+    setStatus('syncing');
+    try {
+      const remote = await download();
+      const localStamp  = state._lastModified || 0;
+      const remoteStamp = remote && remote._lastModified || 0;
+      const localHasData  = (state.entries || []).length > 0;
+      const remoteHasData = remote && (remote.entries || []).length > 0;
+
+      if (remote && (remoteStamp > localStamp) && remoteHasData) {
+        // Cloud is newer → adopt it.
+        state = { ...state, ...remote };
+        await new Promise(r => { saveLocalOnly(); r(); });
+        refreshAll();
+      } else if (!remote || (!remoteHasData && localHasData) || (localStamp > remoteStamp)) {
+        // No cloud file, or local is newer/richer → push local up.
+        await upload();
+      }
+      setStatus('synced');
+    } catch (e) {
+      setStatus(navigator.onLine ? 'error' : 'offline', e.message);
+    }
+  }
+
+  // write to IndexedDB without re-triggering an upload (used when adopting cloud data)
+  function saveLocalOnly() {
+    openDB().then(db => {
+      const tx = db.transaction(DB_STORE, 'readwrite');
+      tx.objectStore(DB_STORE).put(JSON.parse(JSON.stringify(state)), DB_KEY);
+    }).catch(()=>{});
+  }
+
+  // If redirected back with ?code=... (http/https hosting), auto-finish.
+  function handleRedirect() {
+    const p = new URLSearchParams(location.search);
+    const code = p.get('code');
+    if (code && sessionStorage.getItem(LS.pkce)) {
+      history.replaceState({}, '', location.pathname);
+      finishConnect(code);
+      return true;
+    }
+    return false;
+  }
+
+  function renderSettingsIfOpen() {
+    const el = document.getElementById('dropboxSettings');
+    if (el && document.getElementById('page-settings').classList.contains('active')) render();
+  }
+
+  function render() {
+    const el = document.getElementById('dropboxSettings');
+    if (!el) return;
+    if (isConnected()) {
+      const stat = ({synced:'Synced', syncing:'Syncing…', offline:'Offline (will sync when back online)', error:'Error: ' + lastError, connecting:'Connecting…'})[status] || 'Connected';
+      el.innerHTML = `
+        <div class="dbx-row">
+          <span class="dbx-dot dbx-${status}"></span>
+          <span>Connected — auto-syncing to <code>Apps/Elektrarniska20${FILE_PATH}</code></span>
+        </div>
+        <div class="dbx-sub">Status: ${stat}</div>
+        <div class="flex gap-8" style="margin-top:12px">
+          <button class="btn btn-ghost btn-sm" onclick="Dropbox.syncNow()">↻ SYNC NOW</button>
+          <button class="btn btn-danger btn-sm" onclick="Dropbox.disconnect()">DISCONNECT</button>
+        </div>`;
+    } else {
+      el.innerHTML = `
+        <div class="dbx-sub" style="margin-bottom:10px">Save your data to Dropbox automatically. One-time setup — you stay connected after that.</div>
+        <label class="dbx-label">Dropbox App key</label>
+        <input class="dbx-input" id="dbxAppKeyInput" placeholder="your app key" value="${cfg.appKey}">
+        <button class="btn btn-ghost btn-sm" style="margin-top:10px" onclick="Dropbox.connect()">CONNECT DROPBOX</button>
+        <div id="dbxCodeBox" style="display:none;margin-top:14px">
+          <label class="dbx-label">Paste the authorization code from Dropbox</label>
+          <input class="dbx-input" id="dbxCodeInput" placeholder="authorization code">
+          <button class="btn btn-ghost btn-sm" style="margin-top:10px" onclick="Dropbox.finishConnect()">FINISH SETUP</button>
+        </div>`;
+    }
+  }
+
+  return {
+    connect, finishConnect, disconnect, render,
+    scheduleUpload, syncOnOpen,
+    syncNow: () => syncOnOpen(false),
+    handleRedirect,
+    init() {
+      setStatus(isConnected() ? 'syncing' : 'off');
+      render();
+    },
+  };
+})();
+
+function renderDropboxSettings() { Dropbox.render(); }
+
+function exportData() {
+  const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `elektrarniska20-backup-${new Date().toISOString().slice(0,10)}.json`;
+  a.click();
+  notify('Backup exported', 'success');
+}
+
+function importData(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const imported = JSON.parse(e.target.result);
+      state = { ...state, ...imported };
+      saveState();
+      refreshAll();
+      notify('Data imported successfully', 'success');
+    } catch {
+      notify('Invalid JSON file', 'info');
+    }
+  };
+  reader.readAsText(file);
+  event.target.value = '';
+}
+
+function clearAllData() {
+  if (!confirm('Clear ALL data? This cannot be undone.')) return;
+  state.entries = [];
+  saveState();
+  refreshAll();
+  notify('All data cleared', 'info');
+}
+
+// ═══════════════════════════════════════════════════════════
+// NAVIGATION
+// ═══════════════════════════════════════════════════════════
+function showPage(id, btn) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('page-' + id).classList.add('active');
+  if (btn) btn.classList.add('active');
+
+  if (id === 'dashboard') renderDashboard();
+  if (id === 'entry') renderEntry();
+  if (id === 'charts') renderCharts();
+  if (id === 'forecast') renderForecast();
+  if (id === 'annual') renderAnnualSummary();
+  if (id === 'settings') renderSettings();
+}
+
+// ═══════════════════════════════════════════════════════════
+// UTILITY HELPERS
+// ═══════════════════════════════════════════════════════════
+function getUtility(id) { return UTILITIES.find(u => u.id === id); }
+
+function getEntries(utilityId, enabledOnly = false) {
+  return state.entries
+    .filter(e => e.utility === utilityId && (!enabledOnly || e.enabled))
+    .sort((a,b) => a.year*12+a.month - (b.year*12+b.month));
+}
+
+function getAllEntries(enabledOnly = false) {
+  return state.entries.filter(e => !enabledOnly || e.enabled)
+    .sort((a,b) => a.year*12+a.month - (b.year*12+b.month));
+}
+
+function monthKey(year, month) { return year * 100 + month; }
+
+function formatEur(n) { return '€' + Number(n).toFixed(2); }
+
+function getMonthLabel(year, month) { return MONTHS[month-1] + ' ' + year; }
+
+// Returns the last N months as {year, month} sorted ascending
+function lastNMonths(n) {
+  const now = new Date();
+  const result = [];
+  for (let i = n - 1; i >= 0; i--) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    result.push({ year: d.getFullYear(), month: d.getMonth() + 1 });
+  }
+  return result;
+}
+
+function getFilteredMonths() {
+  if (customFrom && customTo) {
+    const [fy, fm] = customFrom.split('-').map(Number);
+    const [ty, tm] = customTo.split('-').map(Number);
+    const result = [];
+    let y = fy, m = fm;
+    while (y * 100 + m <= ty * 100 + tm) {
+      result.push({ year: y, month: m });
+      m++; if (m > 12) { m = 1; y++; }
+    }
+    return result;
+  }
+  if (chartPeriodMonths === 999) {
+    const entries = getAllEntries();
+    if (!entries.length) return lastNMonths(12);
+    const first = entries[0];
+    const now = new Date();
+    const result = [];
+    let y = first.year, m = first.month;
+    const ey = now.getFullYear(), em = now.getMonth() + 1;
+    while (y * 100 + m <= ey * 100 + em) {
+      result.push({ year: y, month: m });
+      m++; if (m > 12) { m = 1; y++; }
+    }
+    return result;
+  }
+  return lastNMonths(chartPeriodMonths);
+}
+
+// ═══════════════════════════════════════════════════════════
+// DASHBOARD
+// ═══════════════════════════════════════════════════════════
+function renderDashboard() {
+  const now = new Date();
+  const curY = now.getFullYear(), curM = now.getMonth() + 1;
+
+  // "Previous month" = one month back from now (what we actually just paid)
+  const prevM = curM === 1 ? 12 : curM - 1;
+  const prevY = curM === 1 ? curY - 1 : curY;
+
+  // "3-month average" = average of the 3 months before prevM
+  const last3months = [];
+  for (let i = 1; i <= 3; i++) {
+    let m = prevM - i; let y = prevY;
+    if (m <= 0) { m += 12; y--; }
+    last3months.push({ year: y, month: m });
+  }
+
+  // Summary row
+  const ytdEntries = state.entries.filter(e => e.enabled && e.year === curY);
+  const ytdTotal = ytdEntries.reduce((s, e) => s + e.amount, 0);
+  const prevMonthEntries = state.entries.filter(e => e.enabled && e.year === prevY && e.month === prevM);
+  const prevMonthTotal = prevMonthEntries.reduce((s,e) => s + e.amount, 0);
+
+  // 3-month avg total
+  const last3totals = last3months.map(({year, month}) =>
+    state.entries.filter(e => e.enabled && e.year === year && e.month === month).reduce((s,e) => s+e.amount, 0));
+  const last3avg = last3totals.reduce((s,v)=>s+v,0) / 3;
+
+  document.getElementById('summaryRow').innerHTML = `
+    <div class="summary-card">
+      <div class="sc-label">Previous Month (${MONTHS[prevM-1]} ${prevY})</div>
+      <div class="sc-value amber">${formatEur(prevMonthTotal)}</div>
+      <div class="sc-sub">${prevMonthEntries.length} utilities logged</div>
+    </div>
+    <div class="summary-card">
+      <div class="sc-label">Last 3-Month Average</div>
+      <div class="sc-value" style="color:var(--text-1)">${formatEur(last3avg)}</div>
+      <div class="sc-sub">${MONTHS[last3months[2].month-1]}–${MONTHS[last3months[0].month-1]} ${last3months[0].year}</div>
+    </div>
+    <div class="summary-card">
+      <div class="sc-label">YTD ${curY}</div>
+      <div class="sc-value teal">${formatEur(ytdTotal)}</div>
+      <div class="sc-sub">${ytdEntries.length} bills logged</div>
+    </div>
+  `;
+
+  // Per-utility cards: show prev month vs 3-month avg
+  const grid = document.getElementById('dashboardGrid');
+  grid.innerHTML = UTILITIES.map(u => {
+    const prevEntries = state.entries.filter(e => e.utility === u.id && e.year === prevY && e.month === prevM && e.enabled);
+    const amount = prevEntries.length ? prevEntries.reduce((s,e)=>s+e.amount,0) : null;
+
+    // 3-month avg for this utility
+    const u3avgs = last3months.map(({year, month}) => {
+      const es = state.entries.filter(e => e.utility === u.id && e.year === year && e.month === month && e.enabled);
+      return es.length ? es.reduce((s,e)=>s+e.amount,0) : null;
+    }).filter(v => v !== null);
+    const uAvg = u3avgs.length ? u3avgs.reduce((s,v)=>s+v,0) / u3avgs.length : null;
+
+    let trendHtml = '';
+    if (amount !== null && uAvg !== null) {
+      const diff = amount - uAvg;
+      const pct = uAvg ? ((diff / uAvg) * 100).toFixed(1) : 0;
+      if (diff > 0.01) trendHtml = `<div class="uc-trend trend-up">▲ €${Math.abs(diff).toFixed(2)} (${pct}%) vs 3M avg</div>`;
+      else if (diff < -0.01) trendHtml = `<div class="uc-trend trend-down">▼ €${Math.abs(diff).toFixed(2)} (${Math.abs(pct)}%) vs 3M avg</div>`;
+      else trendHtml = `<div class="uc-trend trend-flat">— same as 3M avg</div>`;
+    }
+    let metaHtml = '';
+    const prevConsumption = prevEntries.reduce((s,e)=>s+(e.consumption??0),0);
+    if (prevEntries.length && prevConsumption > 0) {
+      metaHtml = `<div class="uc-meta">${prevConsumption} ${u.unit}</div>`;
+    }
+    if (uAvg !== null) {
+      metaHtml += `<div class="uc-meta" style="margin-top:2px">3M avg: ${formatEur(uAvg)}</div>`;
+    }
+    return `
+      <div class="utility-card ${u.id}">
+        <div class="uc-header">
+          <div class="uc-name">${u.label}</div>
+          <div class="uc-icon">${u.icon}</div>
+        </div>
+        <div class="uc-amount">${amount !== null ? `<span class="eur">€</span>${amount.toFixed(2)}` : '<span style="color:var(--text-2);font-size:14px">No data</span>'}</div>
+        ${metaHtml}
+        ${trendHtml}
+      </div>`;
+  }).join('');
+
+  // Dashboard chart
+  renderDashChart();
+}
+
+function renderDashChart() {
+  const months = lastNMonths(12);
+  const labels = months.map(m => MONTHS[m.month-1] + ' ' + String(m.year).slice(2));
+  const data = months.map(({year, month}) => {
+    return state.entries.filter(e => e.enabled && e.year === year && e.month === month)
+      .reduce((s,e) => s + e.amount, 0);
+  });
+
+  if (charts.dash) charts.dash.destroy();
+  const ctx = document.getElementById('dashChart').getContext('2d');
+  charts.dash = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [{
+        data,
+        backgroundColor: months.map((m,i) => {
+          const now = new Date();
+          return (m.year === now.getFullYear() && m.month === now.getMonth()+1)
+            ? 'rgba(217,119,6,0.85)' : 'rgba(217,119,6,0.25)';
+        }),
+        borderColor: 'rgba(217,119,6,0.5)',
+        borderWidth: 1,
+        borderRadius: 3,
+      }]
+    },
+    options: chartOptions({ prefix: '€' })
+  });
+}
+
+// ═══════════════════════════════════════════════════════════
+// DATA ENTRY
+// ═══════════════════════════════════════════════════════════
+function renderEntry() {
+  // Sidebar
+  const list = document.getElementById('utilityList');
+  list.innerHTML = UTILITIES.map(u => `
+    <button class="utility-btn ${u.id === currentUtility ? 'active' : ''}" onclick="selectUtility('${u.id}', this)">
+      <span class="dot" style="background:${u.color}"></span>
+      ${u.icon} ${u.label}
+    </button>
+  `).join('');
+
+  renderEntryTable();
+}
+
+function selectUtility(id, btn) {
+  currentUtility = id;
+  entryFilter = { year: '', enabled: 'all', search: '' };
+  entrySort = { field: 'date', dir: 'desc' };
+  document.querySelectorAll('.utility-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderEntryTable();
+}
+
+function getYearsForUtility(utilityId) {
+  const years = [...new Set(state.entries.filter(e => e.utility === utilityId).map(e => e.year))].sort((a,b)=>b-a);
+  return years;
+}
+
+function applyEntryFiltersAndSort(entries) {
+  let result = [...entries];
+  // Filter by year
+  if (entryFilter.year) result = result.filter(e => e.year === parseInt(entryFilter.year));
+  // Filter by enabled
+  if (entryFilter.enabled === 'yes') result = result.filter(e => e.enabled);
+  if (entryFilter.enabled === 'no')  result = result.filter(e => !e.enabled);
+  // Filter by search (comment)
+  if (entryFilter.search.trim()) {
+    const q = entryFilter.search.trim().toLowerCase();
+    result = result.filter(e => (e.comment||'').toLowerCase().includes(q));
+  }
+  // Sort
+  result.sort((a, b) => {
+    let va, vb;
+    if (entrySort.field === 'date')   { va = a.year*100+a.month; vb = b.year*100+b.month; }
+    if (entrySort.field === 'amount') { va = a.amount; vb = b.amount; }
+    if (entrySort.field === 'consumption') { va = a.consumption ?? -1; vb = b.consumption ?? -1; }
+    return entrySort.dir === 'asc' ? va - vb : vb - va;
+  });
+  return result;
+}
+
+function toggleSort(field) {
+  if (entrySort.field === field) entrySort.dir = entrySort.dir === 'asc' ? 'desc' : 'asc';
+  else { entrySort.field = field; entrySort.dir = 'desc'; }
+  renderEntryTable();
+}
+
+function setEntryFilter(key, value) {
+  entryFilter[key] = value;
+  renderEntryTable();
+}
+
+function clearEntryFilters() {
+  entryFilter = { year: '', enabled: 'all', search: '' };
+  document.getElementById('filterYear').value = '';
+  document.getElementById('filterEnabled').value = 'all';
+  document.getElementById('filterSearch').value = '';
+  renderEntryTable();
+}
+
+function renderEntryTable() {
+  const u = getUtility(currentUtility);
+  document.getElementById('entryTitle').innerHTML = `<span style="color:${u.color}">${u.icon}</span> ${u.label}`;
+
+  const allEntries = getEntries(currentUtility);
+  const wrap = document.getElementById('entryTableWrap');
+
+  if (!allEntries.length) {
+    wrap.innerHTML = `<div class="empty-state"><div class="es-icon">${u.icon}</div><div class="es-text">No entries yet. Click + ADD ENTRY to start.</div></div>`;
+    return;
+  }
+
+  const entries = applyEntryFiltersAndSort(allEntries);
+
+  const years = getYearsForUtility(currentUtility);
+  const yearOptions = years.map(y => `<option value="${y}" ${entryFilter.year==y?'selected':''}>${y}</option>`).join('');
+
+  const sortArrow = dir => dir === 'asc' ? '↑' : '↓';
+  const sortClass = f => entrySort.field === f ? 'sort-btn active' : 'sort-btn';
+
+  const hasConsumption = u.hasConsumption;
+  const consumptionSortBtn = hasConsumption
+    ? `<button class="${sortClass('consumption')}" onclick="toggleSort('consumption')">
+        ${u.unit || 'CONSUMP.'} <span class="sort-arrow">${entrySort.field==='consumption' ? sortArrow(entrySort.dir) : '↕'}</span>
+       </button>`
+    : '';
+
+  const activeFilters = entryFilter.year || entryFilter.enabled !== 'all' || entryFilter.search.trim();
+
+  const toolbar = `
+    <div class="entry-toolbar">
+      <span class="toolbar-label">Sort:</span>
+      <button class="${sortClass('date')}" onclick="toggleSort('date')">
+        Date <span class="sort-arrow">${entrySort.field==='date' ? sortArrow(entrySort.dir) : '↕'}</span>
+      </button>
+      <button class="${sortClass('amount')}" onclick="toggleSort('amount')">
+        Amount <span class="sort-arrow">${entrySort.field==='amount' ? sortArrow(entrySort.dir) : '↕'}</span>
+      </button>
+      ${consumptionSortBtn}
+      <div class="toolbar-sep"></div>
+      <span class="toolbar-label">Filter:</span>
+      <select class="form-select" id="filterYear" onchange="setEntryFilter('year', this.value)" style="width:90px">
+        <option value="">All years</option>
+        ${yearOptions}
+      </select>
+      <select class="form-select" id="filterEnabled" onchange="setEntryFilter('enabled', this.value)" style="width:110px">
+        <option value="all" ${entryFilter.enabled==='all'?'selected':''}>All entries</option>
+        <option value="yes" ${entryFilter.enabled==='yes'?'selected':''}>Included only</option>
+        <option value="no"  ${entryFilter.enabled==='no'?'selected':''}>Excluded only</option>
+      </select>
+      <input type="text" class="form-input" id="filterSearch" placeholder="Search comments…"
+        value="${escHtml(entryFilter.search)}" oninput="setEntryFilter('search', this.value)"
+        style="width:160px">
+      ${activeFilters ? `<button class="btn btn-ghost btn-sm" onclick="clearEntryFilters()" style="color:var(--red);border-color:var(--red)">✕ CLEAR</button>` : ''}
+      <span class="entry-count">${entries.length} / ${allEntries.length} entries</span>
+    </div>`;
+
+  let consumptionCol = hasConsumption ? `<th>${u.unit ? u.unit.toUpperCase() : 'CONSUMPTION'}</th>` : '';
+  let rows = entries.length ? entries.map(e => {
+    let consumptionCell = hasConsumption ? `<td class="text-mono" style="color:var(--teal)">${e.consumption != null ? e.consumption : '—'}</td>` : '';
+    if (u.hasTariffs && e.tariffBreakdown) {
+      const tb = state.tariffBands.map(b => {
+        const val = e.tariffBreakdown[b.id];
+        return val != null ? `<span style="color:${b.color}">${b.name}: ${val} kWh</span>` : '';
+      }).filter(Boolean).join(' · ');
+      consumptionCell = `<td class="text-mono" style="color:var(--teal);font-size:10px">${tb || (e.consumption != null ? e.consumption + ' kWh total' : '—')}</td>`;
+    }
+    return `
+      <tr class="${e.enabled ? '' : 'disabled'}">
+        <td><span class="month-badge">${getMonthLabel(e.year, e.month)}</span></td>
+        <td class="text-mono" style="color:var(--amber);font-weight:600">${formatEur(e.amount)}</td>
+        ${consumptionCell}
+        <td><span class="comment-text" title="${escHtml(e.comment||'')}">${e.comment || '—'}</span></td>
+        <td>
+          <label class="toggle">
+            <input type="checkbox" ${e.enabled ? 'checked' : ''} onchange="toggleEntry('${e.id}', this.checked)">
+            <span class="toggle-slider"></span>
+          </label>
+        </td>
+        <td>
+          <div class="action-btns">
+            <button class="btn btn-ghost btn-sm" onclick="openEditModal('${e.id}')">EDIT</button>
+            <button class="btn btn-danger btn-sm" onclick="deleteEntry('${e.id}')">DEL</button>
+          </div>
+        </td>
+      </tr>`;
+  }).join('') : `<tr><td colspan="10" style="text-align:center;padding:32px;font-family:var(--font-mono);font-size:11px;color:var(--text-2)">No entries match the current filters.</td></tr>`;
+
+  wrap.innerHTML = toolbar + `
+    <table class="entries-table">
+      <thead><tr><th>PERIOD</th><th>AMOUNT</th>${consumptionCol}<th>COMMENT</th><th>INCL.</th><th></th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table>`;
+}
+
+function escHtml(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+function toggleEntry(id, val) {
+  const e = state.entries.find(e => e.id === id);
+  if (e) { e.enabled = val; saveState(); }
+}
+
+function deleteEntry(id) {
+  if (!confirm('Delete this entry?')) return;
+  state.entries = state.entries.filter(e => e.id !== id);
+  saveState();
+  renderEntryTable();
+  notify('Entry deleted', 'info');
+}
+
+// ═══════════════════════════════════════════════════════════
+// MODAL
+// ═══════════════════════════════════════════════════════════
+function nextPeriodForUtility(utilityId) {
+  const entries = getEntries(utilityId);
+  if (!entries.length) {
+    const now = new Date();
+    return { year: now.getFullYear(), month: now.getMonth() + 1 };
+  }
+  const last = entries[entries.length - 1];
+  if (last.month === 12) return { year: last.year + 1, month: 1 };
+  return { year: last.year, month: last.month + 1 };
+}
+
+function openAddModal() {
+  editingId = null;
+  document.getElementById('modalTitle').textContent = 'ADD ENTRY — ' + getUtility(currentUtility).label.toUpperCase();
+  const { year, month } = nextPeriodForUtility(currentUtility);
+  document.getElementById('fYear').value = year;
+  document.getElementById('fMonth').value = month;
+  document.getElementById('fAmount').value = '';
+  document.getElementById('fComment').value = '';
+  document.getElementById('fEnabled').checked = true;
+  buildSpecificFields();
+  document.getElementById('modalOverlay').classList.remove('hidden');
+  setTimeout(() => { const a = document.getElementById('fAmount'); if (a) a.focus(); }, 50);
+}
+
+function openEditModal(id) {
+  editingId = id;
+  const e = state.entries.find(e => e.id === id);
+  if (!e) return;
+  document.getElementById('modalTitle').textContent = 'EDIT ENTRY — ' + getUtility(e.utility).label.toUpperCase();
+  currentUtility = e.utility;
+  document.getElementById('fYear').value = e.year;
+  document.getElementById('fMonth').value = e.month;
+  document.getElementById('fAmount').value = e.amount;
+  document.getElementById('fComment').value = e.comment || '';
+  document.getElementById('fEnabled').checked = e.enabled;
+  buildSpecificFields(e);
+  document.getElementById('modalOverlay').classList.remove('hidden');
+}
+
+function closeModal() {
+  document.getElementById('modalOverlay').classList.add('hidden');
+  editingId = null;
+}
+
+function buildSpecificFields(existing = null) {
+  const u = getUtility(currentUtility);
+  const wrap = document.getElementById('specificFields');
+
+  if (u.hasTariffs) {
+    // Electricity: standalone total + optional tariff band breakdown
+    const bands = state.tariffBands;
+    const tb = existing && existing.tariffBreakdown ? existing.tariffBreakdown : {};
+    const existingTotal = existing && existing.consumption != null ? existing.consumption : '';
+    wrap.innerHTML = `
+      <div style="margin-bottom:12px">
+        <div class="form-group" style="margin-bottom:12px">
+          <label class="form-label">Total Consumption (kWh)</label>
+          <input type="number" class="form-input" id="fElecTotal" step="0.01" min="0"
+            value="${existingTotal}" placeholder="0.00"
+            oninput="onElecTotalManual()">
+          <div style="margin-top:4px;font-family:var(--font-mono);font-size:9px;color:var(--text-2)">
+            Fill this if you don't have band breakdown, or leave blank to auto-sum from bands below.
+          </div>
+        </div>
+        <div class="form-label" style="margin-bottom:8px">TARIFF BAND BREAKDOWN (optional)</div>
+        ${bands.map(b => `
+          <div class="elec-tariff-entry">
+            <div class="elec-tariff-header">
+              <span class="tariff-color-dot" style="background:${b.color}"></span>
+              <span class="elec-tariff-label">${b.name}</span>
+              ${b.ratePerKwh ? `<span class="text-mono text-dim text-sm">@ €${b.ratePerKwh}/kWh</span>` : ''}
+            </div>
+            <div class="form-group">
+              <label class="form-label">kWh consumed</label>
+              <input type="number" class="form-input" id="tb_${b.id}" step="0.01" min="0"
+                value="${tb[b.id] != null ? tb[b.id] : ''}" placeholder="0.00"
+                oninput="updateElecTotal()">
+            </div>
+          </div>
+        `).join('')}
+        <div style="margin-top:8px;font-family:var(--font-mono);font-size:11px;color:var(--text-2)">
+          Band sum: <span id="elecBandSum" style="color:var(--amber)">0</span> kWh
+          ${bands.some(b=>b.ratePerKwh) ? '· Calc. cost: <span id="elecCalcCost" style="color:var(--teal)">€0.00</span>' : ''}
+        </div>
+      </div>`;
+    updateElecTotal();
+  } else if (u.hasConsumption) {
+    const val = existing && existing.consumption != null ? existing.consumption : '';
+    wrap.innerHTML = `
+      <div class="form-group" style="margin-bottom:12px">
+        <label class="form-label">Consumption (${u.unit})</label>
+        <input type="number" class="form-input" id="fConsumption" step="0.001" min="0" value="${val}" placeholder="0.000">
+      </div>`;
+  } else {
+    wrap.innerHTML = '';
+  }
+}
+
+function updateElecTotal() {
+  let bandSum = 0, calcCost = 0;
+  state.tariffBands.forEach(b => {
+    const el = document.getElementById('tb_' + b.id);
+    const v = el ? parseFloat(el.value) || 0 : 0;
+    bandSum += v;
+    calcCost += v * (b.ratePerKwh || 0);
+  });
+  const bs = document.getElementById('elecBandSum');
+  if (bs) bs.textContent = bandSum.toFixed(2);
+  const cc = document.getElementById('elecCalcCost');
+  if (cc) cc.textContent = '€' + calcCost.toFixed(2);
+  // Auto-fill total field from band sum if bands have any values and total wasn't manually set
+  const totalEl = document.getElementById('fElecTotal');
+  if (totalEl && !totalEl.dataset.manuallySet && bandSum > 0) {
+    totalEl.value = bandSum.toFixed(2);
+  }
+}
+
+function onElecTotalManual() {
+  const totalEl = document.getElementById('fElecTotal');
+  if (totalEl) totalEl.dataset.manuallySet = '1';
+}
+
+function saveEntry() {
+  const year = parseInt(document.getElementById('fYear').value);
+  const month = parseInt(document.getElementById('fMonth').value);
+  const amount = parseFloat(document.getElementById('fAmount').value);
+  const comment = document.getElementById('fComment').value.trim();
+  const enabled = document.getElementById('fEnabled').checked;
+
+  if (!year || !month || isNaN(amount) || amount < 0) {
+    notify('Please fill in year, month, and amount', 'info');
+    return;
+  }
+
+  const u = getUtility(currentUtility);
+  let consumption = null;
+  let tariffBreakdown = null;
+
+  if (u.hasTariffs) {
+    tariffBreakdown = {};
+    let bandSum = 0;
+    state.tariffBands.forEach(b => {
+      const el = document.getElementById('tb_' + b.id);
+      const v = el ? parseFloat(el.value) : NaN;
+      if (!isNaN(v) && v >= 0) { tariffBreakdown[b.id] = v; bandSum += v; }
+    });
+    // Use manual total if provided, otherwise fall back to band sum
+    const totalEl = document.getElementById('fElecTotal');
+    const manualTotal = totalEl ? parseFloat(totalEl.value) : NaN;
+    consumption = (!isNaN(manualTotal) && manualTotal >= 0) ? manualTotal : (bandSum || null);
+    if (Object.keys(tariffBreakdown).length === 0) tariffBreakdown = null;
+  } else if (u.hasConsumption) {
+    const cv = parseFloat(document.getElementById('fConsumption')?.value);
+    consumption = isNaN(cv) ? null : cv;
+  }
+
+  if (editingId) {
+    const idx = state.entries.findIndex(e => e.id === editingId);
+    if (idx >= 0) {
+      state.entries[idx] = { ...state.entries[idx], year, month, amount, consumption, tariffBreakdown, comment, enabled };
+    }
+  } else {
+    state.entries.push({
+      id: Date.now().toString(),
+      utility: currentUtility,
+      year, month, amount, consumption, tariffBreakdown, comment, enabled
+    });
+  }
+
+  saveState();
+  closeModal();
+  renderEntryTable();
+  notify(editingId ? 'Entry updated' : 'Entry saved', 'success');
+}
+
+// ═══════════════════════════════════════════════════════════
+// CHARTS
+// ═══════════════════════════════════════════════════════════
+function setPeriod(n, btn) {
+  chartPeriodMonths = n;
+  customFrom = null; customTo = null;
+  document.getElementById('customFrom').value = '';
+  document.getElementById('customTo').value = '';
+  document.querySelectorAll('.period-btn').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  renderCharts();
+}
+
+function setCustomPeriod() {
+  customFrom = document.getElementById('customFrom').value || null;
+  customTo = document.getElementById('customTo').value || null;
+  document.querySelectorAll('.period-btn').forEach(b => b.classList.remove('active'));
+  if (customFrom && customTo) renderCharts();
+}
+
+function chartOptions({ prefix = '', suffix = '', title = '' } = {}) {
+  return {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        backgroundColor: 'rgba(255,255,255,0.97)',
+        borderColor: '#c8ccd8',
+        borderWidth: 1,
+        titleColor: '#4a5068',
+        bodyColor: '#1a1e2e',
+        titleFont: { family: 'IBM Plex Mono', size: 10 },
+        bodyFont: { family: 'IBM Plex Mono', size: 12 },
+        callbacks: {
+          label: ctx => prefix + ctx.parsed.y.toFixed(2) + suffix
+        }
+      }
+    },
+    scales: {
+      x: { grid: { color: '#e8eaef' }, ticks: { color: '#8b92a8', font: { family: 'IBM Plex Mono', size: 9 } } },
+      y: { grid: { color: '#e8eaef' }, ticks: { color: '#8b92a8', font: { family: 'IBM Plex Mono', size: 9 }, callback: v => prefix + v + suffix } }
+    }
+  };
+}
+
+function renderCharts() {
+  const months = getFilteredMonths();
+  const labels = months.map(m => MONTHS[m.month-1] + "'" + String(m.year).slice(2));
+
+  // Total cost chart
+  const totalData = months.map(({year,month}) =>
+    state.entries.filter(e => e.enabled && e.year === year && e.month === month).reduce((s,e)=>s+e.amount,0));
+
+  destroyChart('totalCost');
+  const ctx1 = document.getElementById('totalCostChart').getContext('2d');
+  charts.totalCost = new Chart(ctx1, {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [{
+        data: totalData,
+        borderColor: '#d97706',
+        backgroundColor: 'rgba(217,119,6,0.08)',
+        borderWidth: 2,
+        fill: true,
+        tension: 0.3,
+        pointBackgroundColor: '#f5a623',
+        pointRadius: 3,
+      }]
+    },
+    options: chartOptions({ prefix: '€' })
+  });
+
+  // Per-utility stacked bar
+  destroyChart('utilityBreakdown');
+  const ctx2 = document.getElementById('utilityBreakdownChart').getContext('2d');
+  charts.utilityBreakdown = new Chart(ctx2, {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: UTILITIES.map(u => ({
+        label: u.label,
+        data: months.map(({year,month}) => {
+          const es = state.entries.filter(e => e.enabled && e.utility===u.id && e.year===year && e.month===month);
+          return es.reduce((s,e)=>s+e.amount,0);
+        }),
+        backgroundColor: u.color + '99',
+        borderColor: u.color,
+        borderWidth: 1,
+        borderRadius: 2,
+      }))
+    },
+    options: {
+      ...chartOptions({ prefix: '€' }),
+      plugins: {
+        ...chartOptions().plugins,
+        legend: {
+          display: true,
+          labels: { color: '#4a5068', font: { family: 'IBM Plex Mono', size: 9 }, boxWidth: 10 }
+        },
+        tooltip: { ...chartOptions({ prefix: '€' }).plugins.tooltip, callbacks: { label: ctx => ctx.dataset.label + ': €' + ctx.parsed.y.toFixed(2) } }
+      },
+      scales: { ...chartOptions().scales, x: { ...chartOptions().scales.x, stacked: true }, y: { ...chartOptions().scales.y, stacked: true } }
+    }
+  });
+
+  // Pie chart
+  const totals = UTILITIES.map(u => ({
+    label: u.label, color: u.color,
+    val: state.entries.filter(e => e.enabled && months.some(m => m.year===e.year && m.month===e.month) && e.utility===u.id)
+      .reduce((s,e)=>s+e.amount,0)
+  })).filter(x => x.val > 0);
+
+  destroyChart('pie');
+  const ctx3 = document.getElementById('pieChart').getContext('2d');
+  charts.pie = new Chart(ctx3, {
+    type: 'doughnut',
+    data: {
+      labels: totals.map(t=>t.label),
+      datasets: [{ data: totals.map(t=>t.val), backgroundColor: totals.map(t=>t.color+'cc'), borderColor: '#13161e', borderWidth: 2 }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { display: true, position: 'bottom', labels: { color: '#4a5068', font: { family: 'IBM Plex Mono', size: 9 }, boxWidth: 10, padding: 12 } },
+        tooltip: { backgroundColor: 'rgba(255,255,255,0.97)', borderColor: '#c8ccd8', borderWidth: 1, titleColor: '#4a5068', bodyColor: '#1a1e2e', titleFont: { family: 'IBM Plex Mono', size: 10 }, bodyFont: { family: 'IBM Plex Mono', size: 12 }, callbacks: { label: ctx => ctx.label + ': €' + ctx.parsed.toFixed(2) } }
+      }
+    }
+  });
+
+  // Water consumption
+  const waterU = UTILITIES.find(u=>u.id==='water');
+  destroyChart('water');
+  const ctx4 = document.getElementById('waterChart').getContext('2d');
+  charts.water = new Chart(ctx4, {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [
+        { label: 'Consumption (m³)', data: months.map(({year,month}) => { const es=state.entries.filter(e=>e.enabled&&e.utility==='water'&&e.year===year&&e.month===month); const v=es.reduce((s,e)=>s+(e.consumption??0),0); return es.length&&v>0?v:null; }), backgroundColor: '#2563eb33', borderColor: '#2563eb', borderWidth: 1, borderRadius: 3, yAxisID: 'y' },
+        { label: 'Cost (€)', type: 'line', data: months.map(({year,month}) => { const es=state.entries.filter(e=>e.enabled&&e.utility==='water'&&e.year===year&&e.month===month); const v=es.reduce((s,e)=>s+e.amount,0); return es.length?v:null; }), borderColor: '#d97706', borderWidth: 2, pointRadius: 3, pointBackgroundColor: '#d97706', tension: 0.3, yAxisID: 'y2' }
+      ]
+    },
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: true, labels: { color: '#4a5068', font: { family: 'IBM Plex Mono', size: 9 }, boxWidth: 10 } }, tooltip: { backgroundColor: 'rgba(255,255,255,0.97)', borderColor: '#c8ccd8', borderWidth: 1, titleColor: '#4a5068', bodyColor: '#1a1e2e', titleFont: { family: 'IBM Plex Mono', size: 10 }, bodyFont: { family: 'IBM Plex Mono', size: 12 } } }, scales: { x: { grid: { color: '#e8eaef' }, ticks: { color: '#8b92a8', font: { family: 'IBM Plex Mono', size: 9 } } }, y: { grid: { color: '#e8eaef' }, ticks: { color: '#2563eb', font: { family: 'IBM Plex Mono', size: 9 } }, position: 'left' }, y2: { grid: { display: false }, ticks: { color: '#d97706', font: { family: 'IBM Plex Mono', size: 9 }, callback: v=>'€'+v }, position: 'right' } } }
+  });
+
+  // Electricity consumption with tariff bands
+  destroyChart('electric');
+  const ctx5 = document.getElementById('electricChart').getContext('2d');
+  const hasBreakdowns = state.tariffBands.length > 0 && state.entries.some(e=>e.utility==='electricity'&&e.tariffBreakdown);
+  let elecDatasets;
+  if (hasBreakdowns) {
+    elecDatasets = state.tariffBands.map(b => ({
+      label: b.name + ' (kWh)',
+      data: months.map(({year,month}) => {
+        const es = state.entries.filter(e=>e.enabled&&e.utility==='electricity'&&e.year===year&&e.month===month);
+        if (!es.length) return null;
+        return es.reduce((s,e)=>s+(e.tariffBreakdown?e.tariffBreakdown[b.id]||0:0),0);
+      }),
+      backgroundColor: b.color + '66',
+      borderColor: b.color,
+      borderWidth: 1,
+      borderRadius: 3,
+      stack: 'kwh',
+    }));
+  } else {
+    elecDatasets = [{
+      label: 'Consumption (kWh)',
+      data: months.map(({year,month}) => { const es=state.entries.filter(e=>e.enabled&&e.utility==='electricity'&&e.year===year&&e.month===month); const v=es.reduce((s,e)=>s+(e.consumption??0),0); return es.length&&v>0?v:null; }),
+      backgroundColor: '#f5a62355',
+      borderColor: '#f5a623',
+      borderWidth: 1,
+      borderRadius: 3,
+    }];
+  }
+  elecDatasets.push({ label: 'Cost (€)', type: 'line', data: months.map(({year,month}) => { const es=state.entries.filter(e=>e.enabled&&e.utility==='electricity'&&e.year===year&&e.month===month); const v=es.reduce((s,e)=>s+e.amount,0); return es.length?v:null; }), borderColor: '#0d9488', borderWidth: 2, pointRadius: 3, pointBackgroundColor: '#0d9488', tension: 0.3, yAxisID: 'y2' });
+  charts.electric = new Chart(ctx5, {
+    type: 'bar',
+    data: { labels, datasets: elecDatasets },
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: true, labels: { color: '#4a5068', font: { family: 'IBM Plex Mono', size: 9 }, boxWidth: 10 } }, tooltip: { backgroundColor: 'rgba(255,255,255,0.97)', borderColor: '#c8ccd8', borderWidth: 1, titleColor: '#4a5068', bodyColor: '#1a1e2e', titleFont: { family: 'IBM Plex Mono', size: 10 }, bodyFont: { family: 'IBM Plex Mono', size: 12 } } }, scales: { x: { grid: { color: '#e8eaef' }, ticks: { color: '#8b92a8', font: { family: 'IBM Plex Mono', size: 9 } } }, y: { grid: { color: '#e8eaef' }, ticks: { color: '#d97706', font: { family: 'IBM Plex Mono', size: 9 } }, stacked: true }, y2: { grid: { display: false }, ticks: { color: '#0d9488', font: { family: 'IBM Plex Mono', size: 9 }, callback: v=>'€'+v }, position: 'right' } } }
+  });
+}
+
+function destroyChart(key) { if (charts[key]) { charts[key].destroy(); delete charts[key]; } }
+
+// ═══════════════════════════════════════════════════════════
+// FORECAST
+// ═══════════════════════════════════════════════════════════
+// Per-utility forecast enabled state (persisted in state)
+function getForecastEnabled(utilityId) {
+  if (!state.forecastEnabled) return true;
+  return state.forecastEnabled[utilityId] !== false;
+}
+function setForecastEnabled(utilityId, val) {
+  if (!state.forecastEnabled) state.forecastEnabled = {};
+  state.forecastEnabled[utilityId] = val;
+  saveState();
+  renderForecast();
+}
+
+function renderForecast() {
+  const now = new Date();
+  const nextM = now.getMonth() + 2 > 12 ? 1 : now.getMonth() + 2;
+  const nextY = now.getMonth() + 2 > 12 ? now.getFullYear() + 1 : now.getFullYear();
+  document.getElementById('forecastSubtitle').textContent =
+    `Predicting: ${MONTHS[nextM-1]} ${nextY} · Based on rolling 3-month average`;
+
+  // Utility toggle controls
+  const controlsEl = document.getElementById('forecastControls');
+  controlsEl.innerHTML = UTILITIES.map(u => {
+    const enabled = getForecastEnabled(u.id);
+    return `<div class="fc-toggle-row">
+      <label class="toggle" style="width:28px;height:16px">
+        <input type="checkbox" ${enabled ? 'checked' : ''} onchange="setForecastEnabled('${u.id}', this.checked)">
+        <span class="toggle-slider"></span>
+      </label>
+      <span style="color:${u.color}">${u.icon}</span> ${u.label}
+    </div>`;
+  }).join('');
+
+  const grid = document.getElementById('forecastGrid');
+  let totalForecast = 0;
+  grid.innerHTML = UTILITIES.map(u => {
+    const isEnabled = getForecastEnabled(u.id);
+    const entries = getEntries(u.id, true);
+    if (!entries.length) return `
+      <div class="forecast-card ${!isEnabled ? 'inactive' : ''}">
+        <div class="fc-utility">${u.icon} ${u.label}${!isEnabled ? '<span class="fc-inactive-badge">INACTIVE</span>' : ''}</div>
+        <div class="fc-amount" style="color:var(--text-2)">—</div>
+        <div class="fc-basis">No data</div>
+      </div>`;
+
+    const byMonth = {};
+    entries.forEach(e => { const k = e.year*100+e.month; byMonth[k] = (byMonth[k]||0) + e.amount; });
+    const sortedKeys = Object.keys(byMonth).map(Number).sort();
+    const monthTotals = sortedKeys.map(k => byMonth[k]);
+    const last3 = monthTotals.slice(-3);
+    const avg = last3.reduce((s,v)=>s+v,0) / last3.length;
+    if (isEnabled) totalForecast += avg;
+    const allAvg = monthTotals.reduce((s,v)=>s+v,0) / monthTotals.length;
+    const minVal = Math.min(...monthTotals);
+    const maxVal = Math.max(...monthTotals);
+
+    // Build last-3 breakdown labels
+    const last3Labels = sortedKeys.slice(-3).map(k => {
+      const y = Math.floor(k/100), m = k%100;
+      return `${MONTHS[m-1]} ${y}: ${formatEur(byMonth[k])}`;
+    });
+
+    return `
+      <div class="forecast-card ${!isEnabled ? 'inactive' : ''}">
+        <div class="fc-utility">${u.icon} ${u.label}${!isEnabled ? '<span class="fc-inactive-badge">INACTIVE</span>' : ''}</div>
+        <div class="fc-amount">${formatEur(avg)}</div>
+        <div class="fc-basis">3-month rolling avg${!isEnabled ? ' · excluded from total' : ''}</div>
+        <div class="fc-3mavg" style="margin-top:6px;border-top:1px solid var(--border);padding-top:6px">
+          ${last3Labels.map(l => `<div>${l}</div>`).join('')}
+        </div>
+        <div class="fc-annual" style="margin-top:6px">
+          <div>Annual projection: <strong>${formatEur(avg*12)}</strong></div>
+          <div style="margin-top:2px;font-size:9px">All-time avg: ${formatEur(allAvg)} · Min: ${formatEur(minVal)} · Max: ${formatEur(maxVal)}</div>
+        </div>
+      </div>`;
+  }).join('');
+
+  // Total forecast card
+  document.getElementById('forecastTotal').innerHTML = `
+    <div class="sc-label">Total Forecast (Active utilities)</div>
+    <div class="sc-value amber">${formatEur(totalForecast)}</div>
+    <div class="sc-sub">Annual: ${formatEur(totalForecast * 12)}</div>`;
+
+  // Forecast chart: show actuals + projected next 3 months (active utilities only)
+  const last12 = lastNMonths(12);
+  const labels = [...last12.map(m=>MONTHS[m.month-1]+"'"+String(m.year).slice(2))];
+  const actuals = last12.map(({year,month}) =>
+    state.entries.filter(e=>e.enabled&&getForecastEnabled(e.utility)&&e.year===year&&e.month===month).reduce((s,e)=>s+e.amount,0));
+
+  const lastThreeActuals = actuals.filter(v=>v>0).slice(-3);
+  const projAvg = lastThreeActuals.length ? lastThreeActuals.reduce((a,b)=>a+b,0) / lastThreeActuals.length : 0;
+  const projMonths = [1,2,3].map(i => {
+    const d = new Date(now.getFullYear(), now.getMonth() + i, 1);
+    return MONTHS[d.getMonth()] + "'" + String(d.getFullYear()).slice(2);
+  });
+
+  destroyChart('forecast');
+  const ctx = document.getElementById('forecastChart').getContext('2d');
+  charts.forecast = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: [...labels, ...projMonths],
+      datasets: [
+        { label: 'Actual', data: [...actuals, null, null, null], borderColor: '#d97706', backgroundColor: 'rgba(217,119,6,0.07)', borderWidth: 2, fill: true, tension: 0.3, pointBackgroundColor: '#d97706', pointRadius: 3 },
+        { label: 'Forecast', data: [...actuals.map(()=>null), actuals[actuals.length-1]||projAvg, projAvg, projAvg], borderColor: '#0d9488', backgroundColor: 'rgba(13,148,136,0.07)', borderWidth: 2, borderDash: [6,3], fill: true, tension: 0, pointBackgroundColor: '#0d9488', pointRadius: 4, pointStyle: 'triangle' }
+      ]
+    },
+    options: { ...chartOptions({ prefix:'€' }), plugins: { ...chartOptions({ prefix:'€' }).plugins, legend: { display: true, labels: { color: '#4a5068', font: { family: 'IBM Plex Mono', size: 9 }, boxWidth: 10 } } } }
+  });
+}
+
+// ═══════════════════════════════════════════════════════════
+// ANNUAL SUMMARY
+// ═══════════════════════════════════════════════════════════
+function renderAnnualSummary() {
+  const allEntries = state.entries.filter(e => e.enabled);
+  if (!allEntries.length) {
+    document.getElementById('annualYearCards').innerHTML = '<div class="empty-state"><div class="es-icon">📅</div><div class="es-text">No data yet.</div></div>';
+    document.getElementById('annualBreakdownTable').innerHTML = '';
+    return;
+  }
+
+  const years = [...new Set(allEntries.map(e => e.year))].sort((a,b) => b - a);
+
+  // Year summary cards
+  const yearTotals = years.map(year => {
+    const entries = allEntries.filter(e => e.year === year);
+    return { year, total: entries.reduce((s,e)=>s+e.amount,0), count: entries.length };
+  });
+
+  document.getElementById('annualYearCards').innerHTML = yearTotals.map((yt, i) => {
+    const prev = yearTotals[i+1];
+    let yoyHtml = '';
+    if (prev) {
+      const diff = yt.total - prev.total;
+      const pct = ((diff / prev.total) * 100).toFixed(1);
+      if (diff > 0.01) yoyHtml = `<div class="ayc-yoy trend-up">▲ ${formatEur(Math.abs(diff))} (+${pct}%) vs ${prev.year}</div>`;
+      else if (diff < -0.01) yoyHtml = `<div class="ayc-yoy trend-down">▼ ${formatEur(Math.abs(diff))} (${pct}%) vs ${prev.year}</div>`;
+      else yoyHtml = `<div class="ayc-yoy trend-flat">— same as ${prev.year}</div>`;
+    }
+    return `
+      <div class="annual-year-card">
+        <div class="ayc-year">${yt.year}</div>
+        <div class="ayc-total">${formatEur(yt.total)}</div>
+        <div class="ayc-sub">${yt.count} bills · avg ${formatEur(yt.total/12)}/mo</div>
+        ${yoyHtml}
+      </div>`;
+  }).join('');
+
+  // Bar chart: per-utility per-year stacked
+  const utilityColors = UTILITIES.map(u => u.color);
+  destroyChart('annual');
+  const ctx = document.getElementById('annualChart').getContext('2d');
+  const chartYears = [...years].reverse();
+  charts.annual = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: chartYears.map(String),
+      datasets: UTILITIES.map(u => ({
+        label: u.label,
+        data: chartYears.map(year =>
+          allEntries.filter(e=>e.utility===u.id&&e.year===year).reduce((s,e)=>s+e.amount,0) || null),
+        backgroundColor: u.color + 'cc',
+        borderColor: u.color,
+        borderWidth: 1,
+        borderRadius: 2,
+        stack: 'total',
+      }))
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { display: true, labels: { color: '#4a5068', font: { family: 'IBM Plex Mono', size: 9 }, boxWidth: 10 } },
+        tooltip: { backgroundColor: 'rgba(255,255,255,0.97)', borderColor: '#c8ccd8', borderWidth: 1, titleColor: '#4a5068', bodyColor: '#1a1e2e', titleFont: { family: 'IBM Plex Mono', size: 10 }, bodyFont: { family: 'IBM Plex Mono', size: 12 }, callbacks: { label: ctx => ` ${ctx.dataset.label}: €${ctx.parsed.y.toFixed(2)}` } }
+      },
+      scales: {
+        x: { stacked: true, grid: { color: '#e8eaef' }, ticks: { color: '#8b92a8', font: { family: 'IBM Plex Mono', size: 10 } } },
+        y: { stacked: true, grid: { color: '#e8eaef' }, ticks: { color: '#8b92a8', font: { family: 'IBM Plex Mono', size: 10 }, callback: v => '€' + v } }
+      }
+    }
+  });
+
+  // Detailed breakdown table: rows = utility, columns = years
+  const tableYears = [...years].reverse();
+  const headerCols = tableYears.map(y => `<th>${y}</th>`).join('');
+  const rows = UTILITIES.map(u => {
+    const totals = tableYears.map(year =>
+      allEntries.filter(e=>e.utility===u.id&&e.year===year).reduce((s,e)=>s+e.amount,0));
+    if (totals.every(t=>t===0)) return '';
+    const cells = totals.map((t,i) => {
+      const prev = totals[i-1];
+      let yoyStyle = '';
+      if (prev && t > 0 && prev > 0) {
+        const diff = t - prev;
+        yoyStyle = diff > 0.5 ? `color:var(--red)` : diff < -0.5 ? `color:var(--green)` : '';
+      }
+      return `<td style="${yoyStyle}">${t > 0 ? formatEur(t) : '—'}</td>`;
+    }).join('');
+    const rowTotal = totals.reduce((s,v)=>s+v,0);
+    return `<tr><td><span style="color:${u.color}">${u.icon}</span> ${u.label}</td>${cells}<td style="color:var(--text-1);font-weight:600">${formatEur(rowTotal)}</td></tr>`;
+  }).filter(Boolean).join('');
+
+  const grandTotals = tableYears.map(year =>
+    allEntries.filter(e=>e.year===year).reduce((s,e)=>s+e.amount,0));
+  const grandRow = grandTotals.map(t => `<td style="font-weight:600;color:var(--amber)">${formatEur(t)}</td>`).join('');
+  const grandTotal = grandTotals.reduce((s,v)=>s+v,0);
+
+  document.getElementById('annualBreakdownTable').innerHTML = `
+    <div class="card" style="padding:0;overflow:hidden">
+      <table class="annual-breakdown-table">
+        <thead><tr><th>UTILITY</th>${headerCols}<th>TOTAL</th></tr></thead>
+        <tbody>${rows}</tbody>
+        <tfoot><tr style="background:var(--bg-2)"><td style="font-family:var(--font-mono);font-size:9px;color:var(--text-2)">TOTAL</td>${grandRow}<td style="font-weight:600;color:var(--teal)">${formatEur(grandTotal)}</td></tr></tfoot>
+      </table>
+    </div>`;
+}
+
+// ═══════════════════════════════════════════════════════════
+// SETTINGS
+// ═══════════════════════════════════════════════════════════
+function renderSettings() {
+  renderDropboxSettings();
+  const cfg = document.getElementById('tariffConfig');
+  cfg.innerHTML = state.tariffBands.map((b, i) => `
+    <div class="tariff-config-row">
+      <div class="tariff-handle">⠿</div>
+      <div class="form-group">
+        <label class="form-label">Band name</label>
+        <input type="text" class="form-input" value="${escHtml(b.name)}" oninput="updateBand('${b.id}','name',this.value)">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Color</label>
+        <input type="color" style="height:36px;width:100%;border:1px solid var(--border);background:var(--bg-2);border-radius:var(--radius);cursor:pointer" value="${b.color}" oninput="updateBand('${b.id}','color',this.value)">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Rate (€/kWh)</label>
+        <input type="number" class="form-input" step="0.0001" min="0" value="${b.ratePerKwh||''}" placeholder="0.0000" oninput="updateBand('${b.id}','ratePerKwh',parseFloat(this.value)||0)">
+      </div>
+      <button class="btn btn-danger btn-sm" style="margin-top:18px" onclick="removeBand('${b.id}')">REMOVE</button>
+    </div>
+  `).join('');
+}
+
+function updateBand(id, field, value) {
+  const b = state.tariffBands.find(b=>b.id===id);
+  if (b) { b[field] = value; saveState(); }
+}
+
+function addTariffBand() {
+  state.tariffBands.push({ id: 't' + Date.now(), name: 'New Band', color: '#9aa3b8', ratePerKwh: 0 });
+  saveState();
+  renderSettings();
+}
+
+function removeBand(id) {
+  if (state.tariffBands.length <= 1) { notify('Need at least one band', 'info'); return; }
+  state.tariffBands = state.tariffBands.filter(b=>b.id!==id);
+  saveState();
+  renderSettings();
+}
+
+// ═══════════════════════════════════════════════════════════
+// NOTIFICATIONS
+// ═══════════════════════════════════════════════════════════
+let notifTimer;
+function notify(msg, type = 'success') {
+  const el = document.getElementById('notification');
+  el.textContent = msg;
+  el.className = 'notification ' + type + ' show';
+  clearTimeout(notifTimer);
+  notifTimer = setTimeout(() => el.classList.remove('show'), 2500);
+}
+
+// ═══════════════════════════════════════════════════════════
+// REFRESH ALL
+// ═══════════════════════════════════════════════════════════
+function refreshAll() {
+  renderDashboard();
+  renderEntry();
+}
+
+// ═══════════════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════════════
+// Async init — load local cache first (instant render), then reconcile with Dropbox
+(async () => {
+  if (!checkStorageAvailable()) {
+    notify('⚠ IndexedDB unavailable — local cache disabled', 'info');
+  }
+  await loadState();
+  Dropbox.init();
+  renderDashboard();
+  renderEntry();
+  // If we came back from a Dropbox redirect (http/https hosting), finish auth.
+  if (!Dropbox.handleRedirect()) {
+    // Otherwise, reconcile with the cloud in the background.
+    Dropbox.syncOnOpen(false);
+  }
+})();
+
+// Re-sync when connection returns / tab refocuses
+window.addEventListener('online', () => Dropbox.syncOnOpen(false));
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible') Dropbox.syncOnOpen(false);
+});
+
+// Close modal on overlay click
+document.getElementById('modalOverlay').addEventListener('click', e => {
+  if (e.target === document.getElementById('modalOverlay')) closeModal();
+});
+
+// Keyboard shortcuts
+document.addEventListener('keydown', e => {
+  // Ctrl+Shift+A — open Add Entry (free in Chrome)
+  if (e.ctrlKey && e.shiftKey && e.key === 'E') {
+    e.preventDefault();
+    // Switch to entry page if not already there
+    const entryPage = document.getElementById('page-entry');
+    if (!entryPage.classList.contains('active')) {
+      const entryTab = [...document.querySelectorAll('.nav-tab')].find(t => t.textContent.trim() === 'Data Entry');
+      showPage('entry', entryTab);
+    }
+    openAddModal();
+    return;
+  }
+
+  const modalOpen = !document.getElementById('modalOverlay').classList.contains('hidden');
+
+  // Enter — save entry (only when modal is open, and not in textarea)
+  if (e.key === 'Enter' && modalOpen && document.activeElement.tagName !== 'TEXTAREA') {
+    e.preventDefault();
+    saveEntry();
+    return;
+  }
+
+  // Escape — close modal
+  if (e.key === 'Escape' && modalOpen) {
+    e.preventDefault();
+    closeModal();
+    return;
+  }
+});
+</script>
+</body>
+</html>
