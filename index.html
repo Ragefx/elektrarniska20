@@ -930,7 +930,7 @@ const Dropbox = (() => {
     if (!key) { notify('Enter your Dropbox App key first', 'info'); return; }
     cfg.appKey = key;
     const verifier = randomVerifier();
-    sessionStorage.setItem(LS.pkce, verifier);
+    localStorage.setItem(LS.pkce, verifier);
     const challenge = b64url(await sha256(verifier));
     const ru = redirectUri();
     const params = new URLSearchParams({
@@ -943,18 +943,25 @@ const Dropbox = (() => {
     if (ru) params.set('redirect_uri', ru);
     const url = 'https://www.dropbox.com/oauth2/authorize?' + params.toString();
     setStatus('connecting');
-    window.open(url, '_blank', 'noopener');
-    // Reveal the paste-code box (used on file:// and as a fallback everywhere)
-    const box = document.getElementById('dbxCodeBox');
-    if (box) box.style.display = 'block';
-    notify('Authorize in the new tab, then paste the code back here', 'success');
+    const ru2 = redirectUri();
+    if (ru2) {
+      // Hosted (http/https): navigate THIS tab to Dropbox. On return, the code
+      // and the saved verifier are in the same place, so it completes by itself.
+      window.location.href = url;
+    } else {
+      // file:// has no usable redirect — fall back to open + paste-the-code.
+      window.open(url, '_blank', 'noopener');
+      const box = document.getElementById('dbxCodeBox');
+      if (box) box.style.display = 'block';
+      notify('Authorize in the new tab, then paste the code back here', 'success');
+    }
   }
 
   // ---- Step 2: exchange auth code → refresh token ----
   async function finishConnect(codeFromRedirect) {
     const code = (codeFromRedirect || document.getElementById('dbxCodeInput')?.value || '').trim();
     if (!code) { notify('Paste the authorization code', 'info'); return; }
-    const verifier = sessionStorage.getItem(LS.pkce);
+    const verifier = localStorage.getItem(LS.pkce);
     if (!verifier) { notify('Session expired — click Connect again', 'info'); return; }
     setStatus('connecting');
     try {
@@ -975,7 +982,7 @@ const Dropbox = (() => {
       cfg.enabled = true;
       accessToken = data.access_token;
       accessExpiry = Date.now() + (data.expires_in || 14400) * 1000 - 60000;
-      sessionStorage.removeItem(LS.pkce);
+      localStorage.removeItem(LS.pkce);
       notify('Dropbox connected ✓', 'success');
       // First sync: pull cloud, merge, then push.
       await syncOnOpen(true);
@@ -1103,7 +1110,7 @@ const Dropbox = (() => {
   function handleRedirect() {
     const p = new URLSearchParams(location.search);
     const code = p.get('code');
-    if (code && sessionStorage.getItem(LS.pkce)) {
+    if (code && localStorage.getItem(LS.pkce)) {
       history.replaceState({}, '', location.pathname);
       finishConnect(code);
       return true;
