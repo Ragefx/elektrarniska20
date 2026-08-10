@@ -514,6 +514,20 @@ body {
 }
 .modal-title { font-family: var(--font-mono); font-size: 14px; font-weight: 600; margin-bottom: 20px; color: var(--amber); }
 .modal-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 20px; }
+.import-banner {
+  background: var(--teal-glow);
+  border: 1px solid var(--teal);
+  border-radius: var(--radius);
+  padding: 10px 12px;
+  margin-bottom: 16px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--text-1);
+}
+.import-banner .ib-title { color: var(--teal); font-weight: 600; letter-spacing: 0.04em; margin-bottom: 4px; }
+.import-banner .ib-warn { color: var(--amber); }
+.import-banner code { background: var(--bg-2); padding: 1px 5px; border-radius: 3px; color: var(--text-0); }
 
 /* ── ELECTRICITY SPECIAL ── */
 .elec-tariff-entry { background: var(--bg-2); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px; margin-bottom: 8px; }
@@ -711,7 +725,11 @@ body, .card, .utility-card, .summary-card, .chart-wrapper, .forecast-card,
       <div class="entry-panel">
         <div class="entry-header">
           <div class="entry-title" id="entryTitle">—</div>
-          <button class="btn btn-primary" onclick="openAddModal()" title="Add entry (Ctrl+Shift+E)">+ ADD ENTRY <span style="font-size:9px;opacity:0.7;font-weight:400">Ctrl+Shift+E</span></button>
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+            <button class="btn btn-ghost" onclick="document.getElementById('billPdf').click()" title="Read a PDF bill and pre-fill the form">📄 IMPORT BILL</button>
+            <input type="file" id="billPdf" accept="application/pdf,.pdf" style="display:none" onchange="importBillPdf(event)">
+            <button class="btn btn-primary" onclick="openAddModal()" title="Add entry (Ctrl+Shift+E)">+ ADD ENTRY <span style="font-size:9px;opacity:0.7;font-weight:400">Ctrl+Shift+E</span></button>
+          </div>
         </div>
         <div class="card" style="padding:0;overflow:hidden">
           <div id="entryTableWrap"></div>
@@ -829,6 +847,7 @@ body, .card, .utility-card, .summary-card, .chart-wrapper, .forecast-card,
 <div class="modal-overlay hidden" id="modalOverlay">
   <div class="modal">
     <div class="modal-title" id="modalTitle">ADD ENTRY</div>
+    <div class="import-banner" id="importBanner" style="display:none"></div>
 
     <div class="form-grid">
       <div class="form-group">
@@ -1353,6 +1372,167 @@ function importData(event) {
   event.target.value = '';
 }
 
+// ═══════════════════════════════════════════════════════════
+// PDF BILL IMPORT (client-side, no server — pdf.js text extraction)
+// ═══════════════════════════════════════════════════════════
+let _pdfjsPromise = null;
+function loadPdfJs() {
+  if (window.pdfjsLib) return Promise.resolve(window.pdfjsLib);
+  if (_pdfjsPromise) return _pdfjsPromise;
+  const base = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174';
+  _pdfjsPromise = new Promise((resolve, reject) => {
+    const s = document.createElement('script');
+    s.src = base + '/pdf.min.js';
+    s.onload = () => {
+      try {
+        window.pdfjsLib.GlobalWorkerOptions.workerSrc = base + '/pdf.worker.min.js';
+        resolve(window.pdfjsLib);
+      } catch (e) { reject(e); }
+    };
+    s.onerror = () => { _pdfjsPromise = null; reject(new Error('pdf.js failed to load (offline?)')); };
+    document.head.appendChild(s);
+  });
+  return _pdfjsPromise;
+}
+
+// Parse a European money string ("1.234,56" or "72,23") into a Number.
+function parseEuro(s) {
+  if (s == null) return null;
+  s = String(s).trim().replace(/\s/g, '');
+  if (/,\d{1,2}$/.test(s)) s = s.replace(/\./g, '').replace(',', '.');
+  else s = s.replace(/,/g, '');
+  const n = parseFloat(s);
+  return isNaN(n) ? null : n;
+}
+
+// Heuristic parser tuned to Slovenian utility bills (KOSTAK et al.),
+// with generic fallbacks. Returns best-guess fields to pre-fill the form.
+function parseBill(text) {
+  const t = (text || '').replace(/ /g, ' ');
+  const out = { amount: null, year: null, month: null, dueDate: null, invoice: null, provider: null, meter: null, utility: null, combined: false };
+
+  const firstLine = (t.split('\n').map(s => s.trim()).find(s => s.length > 2) || '').replace(/,?\s*d\.?\s*d\.?$/i, '').trim();
+  if (firstLine) out.provider = firstLine;
+
+  let m = t.match(/znesek\s+([\d.\s]+,\d{2})\s*EUR/i)
+       || t.match(/\*\*\*\s*([\d.]+,\d{2})/)
+       || t.match(/(?:za\s+pla[čc]ilo|skupaj|zapadlost)\D{0,40}?([\d.]+,\d{2})\s*EUR/i);
+  if (m) out.amount = parseEuro(m[1]);
+
+  m = t.match(/\d{1,2}\.\d{1,2}\.\d{4}\s*[-–]\s*(\d{1,2})\.(\d{1,2})\.(\d{4})/);
+  if (m) { out.month = +m[2]; out.year = +m[3]; }
+  if (out.month == null) {
+    m = t.match(/STORITVE\s+(\d{1,2})\s+(\d{4})/i);
+    if (m) { out.month = +m[1]; out.year = +m[2]; }
+  }
+
+  m = t.match(/(?:poravnate\s+do|rok\s*pla[čc]ila|zapadlost\D{0,20})\s*(\d{1,2})\.(\d{1,2})\.(\d{4})/i);
+  if (m) out.dueDate = `${m[3]}-${String(+m[2]).padStart(2,'0')}-${String(+m[1]).padStart(2,'0')}`;
+
+  m = t.match(/RA[ČC]UN\s*(?:št\.?|no\.?|#)?\s*[:.]?\s*(\d{5,})/i) || t.match(/ra[čc]una?\s*(?:št\.?)?\s*(\d{6,})/i);
+  if (m) out.invoice = m[1];
+
+  const mno = t.match(/[šs]t\.?\s*[šs]tevca[:\s]+(\d+)/i);
+  const rd = t.match(/(\d{1,2}\.\d{1,2}\.\d{4})\s+(\d+)\s+(\d{1,2}\.\d{1,2}\.\d{4})\s+(\d+)\s+(\d+)/);
+  if (mno || rd) {
+    out.meter = {
+      no: mno ? mno[1] : null,
+      prevDate: rd ? rd[1] : null, prev: rd ? +rd[2] : null,
+      curDate: rd ? rd[3] : null, cur: rd ? +rd[4] : null,
+      poraba: rd ? +rd[5] : null,
+      diff: rd ? (+rd[4] - +rd[2]) : null,
+    };
+  }
+
+  const has = re => re.test(t);
+  // NB: match "električna"/kWh but NOT the street name "Elektrarniška".
+  if (has(/elektri[čc]n|kWh|MWh|elektrika/i)) out.utility = 'electricity';
+  else if (has(/pitno\s+vodo|vodomer|vodarin/i)) out.utility = 'water';
+  else if (has(/plin|zemeljski/i)) out.utility = 'gas';
+  else if (has(/odpadk|ravnanje\s+z\s+odpad/i)) out.utility = 'waste';
+  else if (has(/internet|telefon|mobiln/i)) out.utility = 'internet';
+  out.combined = has(/pitno\s+vodo|vodarin/i) && has(/odpadk/i);
+
+  return out;
+}
+
+async function importBillPdf(event) {
+  const file = event.target.files[0];
+  event.target.value = '';
+  if (!file) return;
+  notify('Reading PDF…', 'info');
+  try {
+    const pdfjs = await loadPdfJs();
+    const buf = await file.arrayBuffer();
+    const doc = await pdfjs.getDocument({ data: buf }).promise;
+    let text = '';
+    for (let i = 1; i <= doc.numPages; i++) {
+      const page = await doc.getPage(i);
+      const content = await page.getTextContent();
+      content.items.forEach(it => { text += (it.str || '') + (it.hasEOL ? '\n' : ' '); });
+      text += '\n';
+    }
+    if (!text.replace(/\s/g, '').length) {
+      notify('No text found — looks like a scanned image (OCR not supported)', 'info');
+      return;
+    }
+    const parsed = parseBill(text);
+    applyParsedBill(parsed, file.name);
+    notify(parsed.amount != null ? 'Bill read — verify & save' : 'Read PDF, but couldn’t detect the total', parsed.amount != null ? 'success' : 'info');
+  } catch (err) {
+    console.error('PDF import failed', err);
+    notify('Could not read this PDF (offline, or a scanned image?)', 'info');
+  }
+}
+
+function hideImportBanner() {
+  const b = document.getElementById('importBanner');
+  if (b) { b.style.display = 'none'; b.innerHTML = ''; }
+}
+
+function applyParsedBill(p, filename) {
+  editingId = null;
+  if (p.utility && getUtility(p.utility)) { currentUtility = p.utility; renderEntry(); }
+  const u = getUtility(currentUtility);
+  const now = new Date();
+
+  document.getElementById('modalTitle').textContent = 'ADD ENTRY — ' + u.label.toUpperCase();
+  document.getElementById('fYear').value = p.year || now.getFullYear();
+  document.getElementById('fMonth').value = p.month || (now.getMonth() + 1);
+  document.getElementById('fAmount').value = (p.amount != null) ? p.amount.toFixed(2) : '';
+  document.getElementById('fEnabled').checked = true;
+
+  const bits = [];
+  if (p.provider) bits.push(p.provider);
+  if (p.invoice) bits.push('račun ' + p.invoice);
+  if (p.dueDate) bits.push('zapadlost ' + p.dueDate);
+  if (p.meter && p.meter.no) {
+    let ms = 'števec ' + p.meter.no;
+    if (p.meter.prev != null && p.meter.cur != null) ms += `: ${p.meter.prev}→${p.meter.cur} (${p.meter.diff}${u.unit ? ' ' + u.unit : ''})`;
+    bits.push(ms);
+  }
+  document.getElementById('fComment').value = bits.join(' · ');
+
+  buildSpecificFields();
+  if (u.hasConsumption && !u.hasTariffs && p.meter && p.meter.diff != null && p.meter.diff > 0) {
+    const c = document.getElementById('fConsumption');
+    if (c) c.value = p.meter.diff;
+  }
+
+  const banner = document.getElementById('importBanner');
+  const parts = [`Amount <code>${p.amount != null ? formatEur(p.amount) : '—'}</code>`,
+                 `Period <code>${p.month || '?'}/${p.year || '?'}</code>`];
+  if (p.meter && p.meter.no) parts.push(`Meter <code>${p.meter.no}</code>${p.meter.prev != null ? ` (${p.meter.prev}→${p.meter.cur})` : ''}`);
+  let warn = '';
+  if (p.combined) warn += `<div class="ib-warn">⚠ Combined municipal bill (water + waste). The amount is the full total — adjust if you split categories.</div>`;
+  if (p.amount == null) warn += `<div class="ib-warn">⚠ Couldn't read the total — enter it manually.</div>`;
+  banner.innerHTML = `<div class="ib-title">📄 Auto-filled from ${escHtml(filename)} — please verify before saving</div>${parts.join(' · ')}${warn}`;
+  banner.style.display = '';
+
+  document.getElementById('modalOverlay').classList.remove('hidden');
+  setTimeout(() => { const a = document.getElementById('fAmount'); if (a) a.select(); }, 50);
+}
+
 function clearAllData() {
   if (!confirm('Clear ALL data? This cannot be undone.')) return;
   state.entries = [];
@@ -1761,6 +1941,7 @@ function nextPeriodForUtility(utilityId) {
 
 function openAddModal() {
   editingId = null;
+  hideImportBanner();
   document.getElementById('modalTitle').textContent = 'ADD ENTRY — ' + getUtility(currentUtility).label.toUpperCase();
   const { year, month } = nextPeriodForUtility(currentUtility);
   document.getElementById('fYear').value = year;
@@ -1775,6 +1956,7 @@ function openAddModal() {
 
 function openEditModal(id) {
   editingId = id;
+  hideImportBanner();
   const e = state.entries.find(e => e.id === id);
   if (!e) return;
   document.getElementById('modalTitle').textContent = 'EDIT ENTRY — ' + getUtility(e.utility).label.toUpperCase();
@@ -1790,6 +1972,7 @@ function openEditModal(id) {
 
 function closeModal() {
   document.getElementById('modalOverlay').classList.add('hidden');
+  hideImportBanner();
   editingId = null;
 }
 
