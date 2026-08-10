@@ -1405,54 +1405,91 @@ function parseEuro(s) {
   return isNaN(n) ? null : n;
 }
 
-// Heuristic parser tuned to Slovenian utility bills (KOSTAK et al.),
-// with generic fallbacks. Returns best-guess fields to pre-fill the form.
-function parseBill(text) {
-  const t = (text || '').replace(/ /g, ' ');
-  const out = { amount: null, year: null, month: null, dueDate: null, invoice: null, provider: null, meter: null, utility: null, combined: false };
+// ── Shared, layout-agnostic field extractors ──
+// These run for every bill. Slovenian labels come first, generic ones after.
+function _euro(t, res) { for (const re of res) { const m = t.match(re); if (m) return parseEuro(m[1]); } return null; }
 
-  const firstLine = (t.split('\n').map(s => s.trim()).find(s => s.length > 2) || '').replace(/,?\s*d\.?\s*d\.?$/i, '').trim();
-  if (firstLine) out.provider = firstLine;
-
-  let m = t.match(/znesek\s+([\d.\s]+,\d{2})\s*EUR/i)
-       || t.match(/\*\*\*\s*([\d.]+,\d{2})/)
-       || t.match(/(?:za\s+pla[čc]ilo|skupaj|zapadlost)\D{0,40}?([\d.]+,\d{2})\s*EUR/i);
-  if (m) out.amount = parseEuro(m[1]);
-
-  m = t.match(/\d{1,2}\.\d{1,2}\.\d{4}\s*[-–]\s*(\d{1,2})\.(\d{1,2})\.(\d{4})/);
-  if (m) { out.month = +m[2]; out.year = +m[3]; }
-  if (out.month == null) {
-    m = t.match(/STORITVE\s+(\d{1,2})\s+(\d{4})/i);
-    if (m) { out.month = +m[1]; out.year = +m[2]; }
-  }
-
-  m = t.match(/(?:poravnate\s+do|rok\s*pla[čc]ila|zapadlost\D{0,20})\s*(\d{1,2})\.(\d{1,2})\.(\d{4})/i);
-  if (m) out.dueDate = `${m[3]}-${String(+m[2]).padStart(2,'0')}-${String(+m[1]).padStart(2,'0')}`;
-
-  m = t.match(/RA[ČC]UN\s*(?:št\.?|no\.?|#)?\s*[:.]?\s*(\d{5,})/i) || t.match(/ra[čc]una?\s*(?:št\.?)?\s*(\d{6,})/i);
-  if (m) out.invoice = m[1];
-
-  const mno = t.match(/[šs]t\.?\s*[šs]tevca[:\s]+(\d+)/i);
-  const rd = t.match(/(\d{1,2}\.\d{1,2}\.\d{4})\s+(\d+)\s+(\d{1,2}\.\d{1,2}\.\d{4})\s+(\d+)\s+(\d+)/);
-  if (mno || rd) {
-    out.meter = {
-      no: mno ? mno[1] : null,
-      prevDate: rd ? rd[1] : null, prev: rd ? +rd[2] : null,
-      curDate: rd ? rd[3] : null, cur: rd ? +rd[4] : null,
-      poraba: rd ? +rd[5] : null,
-      diff: rd ? (+rd[4] - +rd[2]) : null,
-    };
-  }
-
+function extractAmount(t) {
+  return _euro(t, [
+    /znesek\s+([\d.\s]+,\d{2})\s*EUR/i,
+    /\*\*\*\s*([\d.]+,\d{2})/,
+    /(?:za\s+pla[čc]ilo(?:\s+skupaj)?|skupaj\s+za\s+pla[čc]ilo)\D{0,30}?([\d.]+,\d{2})/i,
+    /(?:amount\s+due|total\s+(?:due|amount)?|balance\s+due)\D{0,30}?([\d.,]+\.\d{2})/i,
+    /(?:skupaj|total)\D{0,20}?([\d.]+,\d{2})\s*(?:EUR|€)/i,
+  ]);
+}
+function extractPeriod(t) {
+  let m = t.match(/\d{1,2}\.\d{1,2}\.\d{4}\s*[-–]\s*(\d{1,2})\.(\d{1,2})\.(\d{4})/);
+  if (m) return { month: +m[2], year: +m[3] };
+  m = t.match(/(?:obdobj\w*|za\s+obd\w*|obra[čc]un\w*)\D{0,20}?(\d{1,2})[.\/](\d{4})/i);
+  if (m) return { month: +m[1], year: +m[2] };
+  m = t.match(/STORITVE\s+(\d{1,2})\s+(\d{4})/i);
+  if (m) return { month: +m[1], year: +m[2] };
+  return { month: null, year: null };
+}
+function extractDue(t) {
+  const m = t.match(/(?:poravnate\s+do|rok\s*pla[čc]ila|zapadlost\D{0,20}|datum\s+zapadlosti\D{0,20}|due\s*date\D{0,10}|valuta\D{0,10})\s*(\d{1,2})\.(\d{1,2})\.(\d{4})/i);
+  return m ? `${m[3]}-${String(+m[2]).padStart(2,'0')}-${String(+m[1]).padStart(2,'0')}` : null;
+}
+function extractInvoice(t) {
+  const m = t.match(/RA[ČC]UN\s*(?:št\.?|no\.?|#)?\s*[:.]?\s*(\d{5,})/i)
+        || t.match(/(?:invoice|ra[čc]una?)\s*(?:no\.?|št\.?|#)?\s*[:.]?\s*(\d{5,})/i);
+  return m ? m[1] : null;
+}
+function extractMeter(t) {
+  const mno = t.match(/[šs]t\.?\s*[šs]tevca[:\s]+(\d+)/i) || t.match(/(?:meter|meriln\w*)\s*(?:no\.?|št\.?|#)?[:\s]+(\d+)/i);
+  const rd  = t.match(/(\d{1,2}\.\d{1,2}\.\d{4})\s+(\d+)\s+(\d{1,2}\.\d{1,2}\.\d{4})\s+(\d+)\s+(\d+)/);
+  if (!mno && !rd) return null;
+  return { no: mno ? mno[1] : null, prevDate: rd ? rd[1] : null, prev: rd ? +rd[2] : null,
+           curDate: rd ? rd[3] : null, cur: rd ? +rd[4] : null, poraba: rd ? +rd[5] : null,
+           diff: rd ? (+rd[4] - +rd[2]) : null };
+}
+function extractProvider(t) {
+  const l = (t.split('\n').map(s => s.trim()).find(s => s.length > 2) || '').replace(/,?\s*d\.?\s*[do]\.?\s*[do]?\.?$/i, '').trim();
+  return l || null;
+}
+function detectUtility(t) {
   const has = re => re.test(t);
   // NB: match "električna"/kWh but NOT the street name "Elektrarniška".
-  if (has(/elektri[čc]n|kWh|MWh|elektrika/i)) out.utility = 'electricity';
-  else if (has(/pitno\s+vodo|vodomer|vodarin/i)) out.utility = 'water';
-  else if (has(/plin|zemeljski/i)) out.utility = 'gas';
-  else if (has(/odpadk|ravnanje\s+z\s+odpad/i)) out.utility = 'waste';
-  else if (has(/internet|telefon|mobiln/i)) out.utility = 'internet';
-  out.combined = has(/pitno\s+vodo|vodarin/i) && has(/odpadk/i);
+  if (has(/elektri[čc]n|kWh|MWh|elektrika/i)) return 'electricity';
+  if (has(/pitno\s+vodo|vodomer|vodarin/i)) return 'water';
+  if (has(/zemeljski\s+plin|\bplin\b/i)) return 'gas';
+  if (has(/odpadk|ravnanje\s+z\s+odpad/i)) return 'waste';
+  if (has(/internet|optika|[šs]irokopasovn/i)) return 'internet';
+  if (has(/mobiln|telefon|naro[čc]nina/i)) return 'phone';
+  return null;
+}
 
+// ── Per-provider profiles ──
+// Each profile fingerprints a provider's bill and may override any field the
+// shared extractors got wrong. Add a new provider by appending one entry.
+const BILL_PROFILES = [
+  {
+    id: 'kostak', label: 'KOSTAK',
+    detect: t => /KOSTAK/i.test(t),
+    parse: () => ({ provider: 'KOSTAK' }),
+  },
+  // { id: '<slug>', label: '<Provider>', detect: t => /<fingerprint>/i.test(t),
+  //   parse: t => ({ /* only fields the generic extractors get wrong */ }) },
+];
+
+// Returns best-guess fields to pre-fill the form (generic extractors +
+// the matching provider profile's overrides).
+function parseBill(text) {
+  const t = (text || '').replace(/ /g, ' ');
+  const profile = BILL_PROFILES.find(p => { try { return p.detect(t); } catch (e) { return false; } });
+  const out = {
+    amount: extractAmount(t), ...extractPeriod(t), dueDate: extractDue(t),
+    invoice: extractInvoice(t), provider: extractProvider(t), meter: extractMeter(t),
+    utility: detectUtility(t),
+    combined: /pitno\s+vodo|vodarin/i.test(t) && /odpadk/i.test(t),
+    profile: profile ? profile.label : null,
+  };
+  if (profile) {
+    let o = {};
+    try { o = profile.parse(t) || {}; } catch (e) { console.warn('bill profile parse failed', e); }
+    for (const k in o) if (o[k] != null) out[k] = o[k];
+  }
   return out;
 }
 
@@ -1526,7 +1563,8 @@ function applyParsedBill(p, filename) {
   let warn = '';
   if (p.combined) warn += `<div class="ib-warn">⚠ Combined municipal bill (water + waste). The amount is the full total — adjust if you split categories.</div>`;
   if (p.amount == null) warn += `<div class="ib-warn">⚠ Couldn't read the total — enter it manually.</div>`;
-  banner.innerHTML = `<div class="ib-title">📄 Auto-filled from ${escHtml(filename)} — please verify before saving</div>${parts.join(' · ')}${warn}`;
+  const tag = p.profile ? `Recognized: ${escHtml(p.profile)}` : 'Unrecognized layout — generic read, check fields';
+  banner.innerHTML = `<div class="ib-title">📄 Auto-filled from ${escHtml(filename)} — please verify before saving</div><div style="margin-bottom:4px;color:var(--text-2)">${tag}</div>${parts.join(' · ')}${warn}`;
   banner.style.display = '';
 
   document.getElementById('modalOverlay').classList.remove('hidden');
