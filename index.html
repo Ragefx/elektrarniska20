@@ -671,7 +671,8 @@ body, .card, .utility-card, .summary-card, .chart-wrapper, .forecast-card,
     <span class="save-indicator" id="saveIndicator">● AUTO-SAVE ON</span>
     <span class="save-indicator" id="dropboxIndicator" title="Dropbox sync status" style="cursor:pointer" onclick="showPage('settings', document.querySelector('.nav-tab:last-of-type'))">○ DROPBOX OFF</span>
     <button class="btn btn-ghost btn-sm" id="themeToggle" onclick="toggleTheme()" title="Toggle light / dark theme">☾ DARK</button>
-    <button class="btn btn-ghost btn-sm" onclick="exportData()">↑ EXPORT</button>
+    <button class="btn btn-ghost btn-sm" onclick="exportData()">↑ JSON</button>
+    <button class="btn btn-ghost btn-sm" onclick="exportCsv()" title="Export all entries as CSV (opens in Excel/Sheets)">⇩ CSV</button>
     <button class="btn btn-ghost btn-sm" onclick="document.getElementById('importFile').click()">↓ IMPORT</button>
     <input type="file" id="importFile" accept=".json" style="display:none" onchange="importData(event)">
   </div>
@@ -739,6 +740,10 @@ body, .card, .utility-card, .summary-card, .chart-wrapper, .forecast-card,
       <div class="chart-wrapper chart-full">
         <div class="card-title" id="title-totalCost">TOTAL MONTHLY COST — ALL UTILITIES</div>
         <div class="chart-container"><canvas id="totalCostChart"></canvas></div>
+      </div>
+      <div class="chart-wrapper chart-full" id="wrap-unitPrice">
+        <div class="card-title">EFFECTIVE UNIT PRICE (€ PER UNIT) — TIP: SELECT ONE UTILITY FOR A CLEAR TREND</div>
+        <div class="chart-container"><canvas id="unitPriceChart"></canvas></div>
       </div>
       <div class="chart-wrapper" id="wrap-utilityBreakdown">
         <div class="card-title">COST BY UTILITY</div>
@@ -1296,6 +1301,37 @@ function exportData() {
   a.download = `elektrarniska20-backup-${new Date().toISOString().slice(0,10)}.json`;
   a.click();
   notify('Backup exported', 'success');
+}
+
+function csvEscape(v) {
+  v = (v == null) ? '' : String(v);
+  return /[",\n\r]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v;
+}
+
+function exportCsv() {
+  if (!state.entries.length) { notify('No entries to export', 'info'); return; }
+  const header = ['Utility','Year','Month','Period','Amount (EUR)','Consumption','Unit','Unit cost','Included','Comment','Tariff breakdown'];
+  const sorted = [...state.entries].sort((a,b) =>
+    a.utility.localeCompare(b.utility) || (a.year*100+a.month) - (b.year*100+b.month));
+  const rows = sorted.map(e => {
+    const u = getUtility(e.utility);
+    const unit = (u && u.unit) ? u.unit : '';
+    const unitCost = (e.consumption > 0) ? (e.amount / e.consumption).toFixed(4) : '';
+    const tb = e.tariffBreakdown
+      ? state.tariffBands.filter(b => e.tariffBreakdown[b.id] != null)
+          .map(b => `${b.name}: ${e.tariffBreakdown[b.id]}`).join('; ')
+      : '';
+    return [ u ? u.label : e.utility, e.year, e.month, getMonthLabel(e.year, e.month),
+             e.amount.toFixed(2), e.consumption ?? '', unit, unitCost,
+             e.enabled ? 'yes' : 'no', e.comment || '', tb ];
+  });
+  const csv = [header, ...rows].map(r => r.map(csvEscape).join(',')).join('\r\n');
+  const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8' }); // BOM = Excel-friendly
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `elektrarniska20-${new Date().toISOString().slice(0,10)}.csv`;
+  a.click();
+  notify('CSV exported', 'success');
 }
 
 function importData(event) {
@@ -2074,6 +2110,47 @@ function renderCharts() {
       }
     }
   });
+
+  // Effective unit price (€ per unit) — selected utilities that track consumption
+  const unitWrap = document.getElementById('wrap-unitPrice');
+  const priceUtils = selUtils.filter(u => u.hasConsumption);
+  const priceDatasets = priceUtils.map(u => {
+    let any = false;
+    const data = months.map(({year,month}) => {
+      const es = state.entries.filter(e => e.enabled && e.utility===u.id && e.year===year && e.month===month);
+      const cost = es.reduce((s,e)=>s+e.amount,0);
+      const cons = es.reduce((s,e)=>s+(e.consumption??0),0);
+      if (cons > 0) { any = true; return +(cost / cons).toFixed(4); }
+      return null;
+    });
+    return { has: any, ds: {
+      label: `${u.label} (€/${u.unit})`, data,
+      borderColor: u.color, backgroundColor: u.color + '22',
+      borderWidth: 2, tension: 0.3, spanGaps: true,
+      pointBackgroundColor: u.color, pointRadius: 3, unit: u.unit,
+    }};
+  }).filter(x => x.has).map(x => x.ds);
+
+  if (priceDatasets.length) {
+    if (unitWrap) unitWrap.style.display = '';
+    destroyChart('unitPrice');
+    const ctxUp = document.getElementById('unitPriceChart').getContext('2d');
+    charts.unitPrice = new Chart(ctxUp, {
+      type: 'line',
+      data: { labels, datasets: priceDatasets },
+      options: {
+        ...chartOptions({ prefix: '€' }),
+        plugins: {
+          ...chartOptions().plugins,
+          legend: chartLegend(),
+          tooltip: { ...chartTooltip(), callbacks: { label: ctx => `${ctx.dataset.label}: €${Number(ctx.parsed.y).toFixed(4)} per ${ctx.dataset.unit}` } }
+        }
+      }
+    });
+  } else {
+    if (unitWrap) unitWrap.style.display = 'none';
+    destroyChart('unitPrice');
+  }
 
   // Water consumption — only when Water is selected
   const waterWrap = document.getElementById('wrap-water');
