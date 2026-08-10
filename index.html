@@ -1467,6 +1467,24 @@ function detectUtility(t) {
   return null;
 }
 
+// KOSTAK is a combined water+waste bill. Split it into a Waste amount (the
+// "RAVNANJE Z ODPADKI" section total, incl. VAT) and a Water amount (grand
+// total − waste). Anchors on the net+VAT=total identity at the end of the
+// itemized "z DDV" column, then takes the section subtotal just before it.
+function kostakSplit(t) {
+  const li = t.search(/Za\s+pla[čc]ilo\s*\(EUR\)/i);
+  const tail = li >= 0 ? t.slice(li) : t;
+  const nums = (tail.match(/\d{1,3}(?:\.\d{3})*,\d{2}/g) || []).map(parseEuro);
+  for (let i = nums.length - 1; i >= 3; i--) {
+    const total = nums[i], vat = nums[i - 1], net = nums[i - 2];
+    if (net > 0 && vat >= 0 && Math.abs(net + vat - total) <= 0.03) {
+      const waste = nums[i - 3];
+      if (waste > 0 && waste < total) return { total, waste, water: +(total - waste).toFixed(2) };
+    }
+  }
+  return null;
+}
+
 // ── Per-provider profiles ──
 // Each profile fingerprints a provider's bill and may override any field the
 // shared extractors got wrong. Add a new provider by appending one entry.
@@ -1474,7 +1492,15 @@ const BILL_PROFILES = [
   {
     id: 'kostak', label: 'KOSTAK',
     detect: t => /KOSTAK/i.test(t),
-    parse: () => ({ provider: 'KOSTAK' }),
+    parse: t => {
+      const out = { provider: 'KOSTAK' };
+      const s = kostakSplit(t);
+      if (s) out.entries = [
+        { utility: 'water', amount: s.water, note: `vodni del = skupaj − odpadki (€${s.total.toFixed(2)} − €${s.waste.toFixed(2)})` },
+        { utility: 'waste', amount: s.waste, note: 'RAVNANJE Z ODPADKI (odpadki)' },
+      ];
+      return out;
+    },
   },
   {
     id: 'telemach', label: 'Telemach',
@@ -1572,44 +1598,76 @@ function hideImportBanner() {
   if (b) { b.style.display = 'none'; b.innerHTML = ''; }
 }
 
+// Import queue: some bills (e.g. KOSTAK) map to several entries. We confirm
+// each one in the normal Add modal, then advance to the next on save.
+let _importMeta = null;      // shared fields for the whole bill
+let _importPending = [];     // entry descriptors still to confirm
+let _importTotal = 0;        // total entries for this bill
+
 function applyParsedBill(p, filename) {
-  editingId = null;
-  if (p.utility && getUtility(p.utility)) { currentUtility = p.utility; renderEntry(); }
-  const u = getUtility(currentUtility);
+  _importMeta = { year: p.year, month: p.month, provider: p.provider, invoice: p.invoice,
+                  dueDate: p.dueDate, meter: p.meter, filename, profile: p.profile, combined: p.combined };
+  let items;
+  if (Array.isArray(p.entries) && p.entries.length) {
+    items = p.entries.map(e => ({ utility: e.utility, amount: e.amount, consumption: e.consumption ?? null, note: e.note }));
+  } else {
+    items = [{ utility: p.utility || currentUtility, amount: p.amount, consumption: null }];
+  }
+  _importTotal = items.length;
+  _importPending = items;
+  openNextImportEntry();
+}
+
+function openNextImportEntry() {
+  if (!_importPending || !_importPending.length) return;
+  const item = _importPending.shift();
+  const idx = _importTotal - _importPending.length; // 1-based
+  const m = _importMeta;
   const now = new Date();
+  editingId = null;
+
+  const util = (item.utility && getUtility(item.utility)) ? item.utility : currentUtility;
+  currentUtility = util; renderEntry();
+  const u = getUtility(currentUtility);
 
   document.getElementById('modalTitle').textContent = 'ADD ENTRY — ' + u.label.toUpperCase();
-  document.getElementById('fYear').value = p.year || now.getFullYear();
-  document.getElementById('fMonth').value = p.month || (now.getMonth() + 1);
-  document.getElementById('fAmount').value = (p.amount != null) ? p.amount.toFixed(2) : '';
+  document.getElementById('fYear').value = m.year || now.getFullYear();
+  document.getElementById('fMonth').value = m.month || (now.getMonth() + 1);
+  document.getElementById('fAmount').value = (item.amount != null) ? item.amount.toFixed(2) : '';
   document.getElementById('fEnabled').checked = true;
 
   const bits = [];
-  if (p.provider) bits.push(p.provider);
-  if (p.invoice) bits.push('račun ' + p.invoice);
-  if (p.dueDate) bits.push('zapadlost ' + p.dueDate);
-  if (p.meter && p.meter.no) {
-    let ms = 'števec ' + p.meter.no;
-    if (p.meter.prev != null && p.meter.cur != null) ms += `: ${p.meter.prev}→${p.meter.cur} (${p.meter.diff}${u.unit ? ' ' + u.unit : ''})`;
+  if (m.provider) bits.push(m.provider);
+  if (m.invoice) bits.push('račun ' + m.invoice);
+  if (m.dueDate) bits.push('zapadlost ' + m.dueDate);
+  if (m.meter && m.meter.no && u.hasConsumption) {
+    let ms = 'števec ' + m.meter.no;
+    if (m.meter.prev != null && m.meter.cur != null) ms += `: ${m.meter.prev}→${m.meter.cur} (${m.meter.diff}${u.unit ? ' ' + u.unit : ''})`;
     bits.push(ms);
   }
+  if (item.note) bits.push(item.note);
   document.getElementById('fComment').value = bits.join(' · ');
 
   buildSpecificFields();
-  if (u.hasConsumption && !u.hasTariffs && p.meter && p.meter.diff != null && p.meter.diff > 0) {
+  if (u.hasConsumption && !u.hasTariffs) {
     const c = document.getElementById('fConsumption');
-    if (c) c.value = p.meter.diff;
+    if (c) {
+      if (item.consumption != null) c.value = item.consumption;
+      else if (_importTotal === 1 && m.meter && m.meter.diff != null && m.meter.diff > 0) c.value = m.meter.diff;
+    }
   }
 
   const banner = document.getElementById('importBanner');
-  const parts = [`Amount <code>${p.amount != null ? formatEur(p.amount) : '—'}</code>`,
-                 `Period <code>${p.month || '?'}/${p.year || '?'}</code>`];
-  if (p.meter && p.meter.no) parts.push(`Meter <code>${p.meter.no}</code>${p.meter.prev != null ? ` (${p.meter.prev}→${p.meter.cur})` : ''}`);
+  const parts = [`Amount <code>${item.amount != null ? formatEur(item.amount) : '—'}</code>`,
+                 `Period <code>${m.month || '?'}/${m.year || '?'}</code>`];
+  if (m.meter && m.meter.no && u.hasConsumption) parts.push(`Meter <code>${m.meter.no}</code>${m.meter.prev != null ? ` (${m.meter.prev}→${m.meter.cur})` : ''}`);
+  let step = '';
+  if (_importTotal > 1) step = `<div class="ib-warn">Entry ${idx} of ${_importTotal} — <strong>${escHtml(u.label)}</strong>. Save this and the next opens automatically.</div>`;
   let warn = '';
-  if (p.combined) warn += `<div class="ib-warn">⚠ Combined municipal bill (water + waste). The amount is the full total — adjust if you split categories.</div>`;
-  if (p.amount == null) warn += `<div class="ib-warn">⚠ Couldn't read the total — enter it manually.</div>`;
-  const tag = p.profile ? `Recognized: ${escHtml(p.profile)}` : 'Unrecognized layout — generic read, check fields';
-  banner.innerHTML = `<div class="ib-title">📄 Auto-filled from ${escHtml(filename)} — please verify before saving</div><div style="margin-bottom:4px;color:var(--text-2)">${tag}</div>${parts.join(' · ')}${warn}`;
+  if (m.combined && _importTotal === 1) warn += `<div class="ib-warn">⚠ Combined municipal bill (water + waste). The amount is the full total — adjust if you split categories.</div>`;
+  if (item.amount == null) warn += `<div class="ib-warn">⚠ Couldn't read the amount — enter it manually.</div>`;
+  const tag = m.profile ? `Recognized: ${escHtml(m.profile)}` : 'Unrecognized layout — generic read, check fields';
+  banner.innerHTML = `<div class="ib-title">📄 Auto-filled from ${escHtml(m.filename)} — please verify before saving</div><div style="margin-bottom:4px;color:var(--text-2)">${tag}</div>${parts.join(' · ')}${step}${warn}`;
   banner.style.display = '';
 
   document.getElementById('modalOverlay').classList.remove('hidden');
@@ -2057,6 +2115,8 @@ function closeModal() {
   document.getElementById('modalOverlay').classList.add('hidden');
   hideImportBanner();
   editingId = null;
+  // Cancelling aborts any remaining queued import entries.
+  _importPending = []; _importTotal = 0; _importMeta = null;
 }
 
 function buildSpecificFields(existing = null) {
@@ -2185,9 +2245,14 @@ function saveEntry() {
   }
 
   saveState();
-  closeModal();
   renderEntryTable();
-  notify(editingId ? 'Entry updated' : 'Entry saved', 'success');
+  if (!editingId && _importPending && _importPending.length) {
+    notify('Saved — next entry…', 'success');
+    openNextImportEntry();
+  } else {
+    closeModal();
+    notify(editingId ? 'Entry updated' : 'Entry saved', 'success');
+  }
 }
 
 // ═══════════════════════════════════════════════════════════
