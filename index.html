@@ -1498,6 +1498,22 @@ const BILL_PROFILES = [
       return { provider: 'GEN-I', invoice: inv ? inv[1] : null, meter: mno ? { no: mno[1] } : null };
     },
   },
+  {
+    id: 'rtv', label: 'RTV Slovenija',
+    detect: t => /RTV[\s-]*(?:SLOVENIJA|PRISPEVEK)/i.test(t),
+    parse: t => {
+      // payer's name is the first line, not the provider; the contact footer's
+      // "telefonska" would wrongly imply phone → force "other" (razno).
+      // "Rok plačila do:" sits next to a decoy issue date, so read "Rok: <date>".
+      const inv = t.match(/RTV[- ]?PRISPEVEK\s+(\d{6,})/i);
+      const due = t.match(/\bRok\s*:?\s*(\d{1,2})\.\s*(\d{1,2})\.\s*(\d{4})/i);
+      return {
+        provider: 'RTV Slovenija', utility: 'other',
+        invoice: inv ? inv[1] : null,
+        dueDate: due ? `${due[3]}-${String(+due[2]).padStart(2,'0')}-${String(+due[1]).padStart(2,'0')}` : null,
+      };
+    },
+  },
   // { id: '<slug>', label: '<Provider>', detect: t => /<fingerprint>/i.test(t),
   //   parse: t => ({ /* only fields the generic extractors get wrong */ }) },
 ];
