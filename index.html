@@ -1450,8 +1450,10 @@ function extractProvider(t) {
 }
 function detectUtility(t) {
   const has = re => re.test(t);
-  // NB: match "električna"/kWh but NOT the street name "Elektrarniška".
-  if (has(/elektri[čc]n|kWh|MWh|elektrika/i)) return 'electricity';
+  // electricity: require kWh/MWh or "električna energija" — deliberately NOT bare
+  // "električn" so we skip the street name "Elektrarniška" and the boilerplate
+  // safety notice about "električnega omrežja" (power grid) on telecom bills.
+  if (has(/kWh|MWh|elektri[čc]n\w*\s+energij/i)) return 'electricity';
   if (has(/pitno\s+vodo|vodomer|vodarin/i)) return 'water';
   if (has(/zemeljski\s+plin|\bplin\b/i)) return 'gas';
   if (has(/odpadk|ravnanje\s+z\s+odpad/i)) return 'waste';
@@ -1468,6 +1470,16 @@ const BILL_PROFILES = [
     id: 'kostak', label: 'KOSTAK',
     detect: t => /KOSTAK/i.test(t),
     parse: () => ({ provider: 'KOSTAK' }),
+  },
+  {
+    id: 'telemach', label: 'Telemach',
+    detect: t => /Telemach/i.test(t),
+    parse: t => {
+      // invoice is alphanumeric here (e.g. "Račun št. CLB-S1-1003258939")
+      const m = t.match(/ra[čc]un\s*(?:št\.?|no\.?|#)?\s*[:.]?\s*([A-Za-z0-9][A-Za-z0-9\-\/]{4,})/i);
+      const inv = m && /\d/.test(m[1]) ? m[1] : null;
+      return { provider: 'Telemach', utility: 'internet', invoice: inv };
+    },
   },
   // { id: '<slug>', label: '<Provider>', detect: t => /<fingerprint>/i.test(t),
   //   parse: t => ({ /* only fields the generic extractors get wrong */ }) },
