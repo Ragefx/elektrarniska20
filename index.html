@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Elektrarniska20 — Utility Tracker</title>
+<script>try{var t=localStorage.getItem('theme');if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t);}catch(e){}</script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
@@ -43,6 +44,62 @@
   --radius: 6px;
   --font-mono: 'IBM Plex Mono', monospace;
   --font-sans: 'IBM Plex Sans', sans-serif;
+}
+
+/* ── DARK THEME ── tokens overridden; every rule below already uses the vars */
+:root[data-theme="dark"] {
+  --bg-0: #0e1016;
+  --bg-1: #161a22;
+  --bg-2: #1c212b;
+  --bg-3: #232a37;
+  --bg-4: #2c3543;
+  --border: #262d3a;
+  --border-light: #3a4353;
+  --text-0: #e8ebf2;
+  --text-1: #a6afc4;
+  --text-2: #6b7488;
+  --amber: #f5a623;
+  --amber-dim: rgba(245,166,35,0.28);
+  --amber-glow: rgba(245,166,35,0.14);
+  --teal: #2dd4bf;
+  --teal-dim: rgba(45,212,191,0.24);
+  --teal-glow: rgba(45,212,191,0.12);
+  --red: #f87171;
+  --green: #4ade80;
+  --blue: #60a5fa;
+  --purple: #a78bfa;
+  --orange: #fb923c;
+  --pink: #f472b6;
+  --c-water: #60a5fa;
+  --c-electricity: #f5a623;
+  --c-gas: #fb923c;
+  --c-waste: #4ade80;
+  --c-internet: #a78bfa;
+  --c-phone: #f472b6;
+  --c-other: #94a3b8;
+}
+/* Follow the OS preference until the user makes an explicit choice */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg-0: #0e1016;
+    --bg-1: #161a22;
+    --bg-2: #1c212b;
+    --bg-3: #232a37;
+    --bg-4: #2c3543;
+    --border: #262d3a;
+    --border-light: #3a4353;
+    --text-0: #e8ebf2;
+    --text-1: #a6afc4;
+    --text-2: #6b7488;
+    --amber-dim: rgba(245,166,35,0.28);
+    --amber-glow: rgba(245,166,35,0.14);
+    --teal: #2dd4bf;
+    --teal-dim: rgba(45,212,191,0.24);
+    --teal-glow: rgba(45,212,191,0.12);
+    --red: #f87171;
+    --green: #4ade80;
+    --c-water: #60a5fa;
+  }
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -541,6 +598,69 @@ body {
 .sort-arrow { font-size: 9px; }
 .toolbar-label { font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-2); white-space: nowrap; }
 .entry-count { font-family: var(--font-mono); font-size: 10px; color: var(--text-2); margin-left: auto; white-space: nowrap; }
+
+/* ── CHART UTILITY PICKER ── */
+.chart-util-picker { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; margin-bottom: 20px; }
+.cu-chip {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 5px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--bg-1);
+  color: var(--text-2);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  user-select: none;
+  transition: all 0.15s;
+}
+.cu-chip:hover { border-color: var(--border-light); color: var(--text-1); }
+.cu-chip input { display: none; }
+.cu-chip .cu-dot { width: 8px; height: 8px; border-radius: 50%; opacity: 0.35; transition: opacity 0.15s; }
+.cu-chip.on { color: var(--text-0); border-color: var(--cu); background: color-mix(in srgb, var(--cu) 12%, var(--bg-1)); }
+.cu-chip.on .cu-dot { opacity: 1; }
+
+/* Tables scroll horizontally instead of being clipped by body overflow */
+#entryTableWrap, #annualBreakdownTable { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+
+/* Smooth theme switch */
+body, .card, .utility-card, .summary-card, .chart-wrapper, .forecast-card,
+.annual-year-card, .header, .nav, .modal, .form-input, .form-select, .form-textarea {
+  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+}
+
+/* ── RESPONSIVE ── */
+@media (max-width: 900px) {
+  .charts-grid { grid-template-columns: 1fr; }
+  .chart-row { grid-template-columns: 1fr; }
+}
+@media (max-width: 780px) {
+  .entry-layout { grid-template-columns: 1fr; }
+  .utility-list { flex-direction: row; flex-wrap: wrap; }
+  .utility-list + *, .entry-panel { min-width: 0; }
+  .utility-btn { flex: 1 1 calc(50% - 4px); justify-content: center; }
+  .summary-row { grid-template-columns: 1fr; }
+  .tariff-config-row { grid-template-columns: 1fr 1fr; row-gap: 10px; }
+  .tariff-config-row .tariff-handle,
+  .tariff-config-row .btn { grid-column: 1 / -1; margin-top: 0; }
+  .tariff-row { grid-template-columns: 1fr; }
+}
+@media (max-width: 560px) {
+  .main { padding: 14px; }
+  .header { flex-wrap: wrap; height: auto; min-height: 52px; padding: 8px 12px; gap: 6px; }
+  .header-actions { flex-wrap: wrap; gap: 6px; }
+  .logo { font-size: 12px; letter-spacing: 0.08em; }
+  .logo span { display: none; }
+  .nav { overflow-x: auto; padding: 0 8px; -webkit-overflow-scrolling: touch; }
+  .nav::-webkit-scrollbar { height: 0; }
+  .nav-tab { padding: 12px 12px; white-space: nowrap; }
+  .sc-value { font-size: 24px; }
+  .uc-amount { font-size: 22px; }
+  .entry-count { margin-left: 0; width: 100%; }
+  .modal { padding: 20px; }
+  .charts-controls > div[style*="margin-left"] { margin-left: 0 !important; flex-wrap: wrap; }
+}
 </style>
 </head>
 <body>
@@ -550,6 +670,7 @@ body {
   <div class="header-actions">
     <span class="save-indicator" id="saveIndicator">● AUTO-SAVE ON</span>
     <span class="save-indicator" id="dropboxIndicator" title="Dropbox sync status" style="cursor:pointer" onclick="showPage('settings', document.querySelector('.nav-tab:last-of-type'))">○ DROPBOX OFF</span>
+    <button class="btn btn-ghost btn-sm" id="themeToggle" onclick="toggleTheme()" title="Toggle light / dark theme">☾ DARK</button>
     <button class="btn btn-ghost btn-sm" onclick="exportData()">↑ EXPORT</button>
     <button class="btn btn-ghost btn-sm" onclick="document.getElementById('importFile').click()">↓ IMPORT</button>
     <input type="file" id="importFile" accept=".json" style="display:none" onchange="importData(event)">
@@ -613,12 +734,13 @@ body {
         <input type="month" class="form-input" id="customTo" style="padding:4px 8px;font-size:11px" onchange="setCustomPeriod()">
       </div>
     </div>
+    <div class="chart-util-picker" id="chartUtilityPicker"></div>
     <div class="charts-grid">
       <div class="chart-wrapper chart-full">
-        <div class="card-title">TOTAL MONTHLY COST — ALL UTILITIES</div>
+        <div class="card-title" id="title-totalCost">TOTAL MONTHLY COST — ALL UTILITIES</div>
         <div class="chart-container"><canvas id="totalCostChart"></canvas></div>
       </div>
-      <div class="chart-wrapper">
+      <div class="chart-wrapper" id="wrap-utilityBreakdown">
         <div class="card-title">COST BY UTILITY</div>
         <div class="chart-container"><canvas id="utilityBreakdownChart"></canvas></div>
       </div>
@@ -626,11 +748,11 @@ body {
         <div class="card-title">UTILITY SHARE (SELECTED PERIOD)</div>
         <div class="chart-container" style="height:240px"><canvas id="pieChart"></canvas></div>
       </div>
-      <div class="chart-wrapper">
+      <div class="chart-wrapper" id="wrap-water">
         <div class="card-title">WATER CONSUMPTION (m³)</div>
         <div class="chart-container"><canvas id="waterChart"></canvas></div>
       </div>
-      <div class="chart-wrapper">
+      <div class="chart-wrapper" id="wrap-electric">
         <div class="card-title">ELECTRICITY CONSUMPTION (kWh)</div>
         <div class="chart-container"><canvas id="electricChart"></canvas></div>
       </div>
@@ -777,6 +899,7 @@ let state = {
 let currentUtility = 'water';
 let editingId = null;
 let chartPeriodMonths = 12;
+let chartUtilities = UTILITIES.map(u => u.id);   // which utilities feed the Charts page
 let customFrom = null;
 let customTo = null;
 let entrySort = { field: 'date', dir: 'desc' };
@@ -1785,39 +1908,98 @@ function setCustomPeriod() {
   if (customFrom && customTo) renderCharts();
 }
 
+// Live theme tokens so charts repaint correctly in light and dark
+function themeColors() {
+  const cs = getComputedStyle(document.documentElement);
+  const v = (n, fb) => (cs.getPropertyValue(n).trim() || fb);
+  return {
+    grid:      v('--border', '#e8eaef'),
+    tick:      v('--text-2', '#8b92a8'),
+    legend:    v('--text-1', '#4a5068'),
+    tipBg:     v('--bg-1', '#ffffff'),
+    tipBorder: v('--border-light', '#c8ccd8'),
+    tipTitle:  v('--text-1', '#4a5068'),
+    tipBody:   v('--text-0', '#1a1e2e'),
+  };
+}
+function chartTooltip() {
+  const c = themeColors();
+  return {
+    backgroundColor: c.tipBg, borderColor: c.tipBorder, borderWidth: 1,
+    titleColor: c.tipTitle, bodyColor: c.tipBody,
+    titleFont: { family: 'IBM Plex Mono', size: 10 }, bodyFont: { family: 'IBM Plex Mono', size: 12 },
+  };
+}
+function chartLegend() {
+  return { display: true, labels: { color: themeColors().legend, font: { family: 'IBM Plex Mono', size: 9 }, boxWidth: 10 } };
+}
 function chartOptions({ prefix = '', suffix = '', title = '' } = {}) {
+  const c = themeColors();
   return {
     responsive: true,
     maintainAspectRatio: false,
     plugins: {
       legend: { display: false },
-      tooltip: {
-        backgroundColor: 'rgba(255,255,255,0.97)',
-        borderColor: '#c8ccd8',
-        borderWidth: 1,
-        titleColor: '#4a5068',
-        bodyColor: '#1a1e2e',
-        titleFont: { family: 'IBM Plex Mono', size: 10 },
-        bodyFont: { family: 'IBM Plex Mono', size: 12 },
-        callbacks: {
-          label: ctx => prefix + ctx.parsed.y.toFixed(2) + suffix
-        }
-      }
+      tooltip: { ...chartTooltip(), callbacks: { label: ctx => prefix + ctx.parsed.y.toFixed(2) + suffix } }
     },
     scales: {
-      x: { grid: { color: '#e8eaef' }, ticks: { color: '#8b92a8', font: { family: 'IBM Plex Mono', size: 9 } } },
-      y: { grid: { color: '#e8eaef' }, ticks: { color: '#8b92a8', font: { family: 'IBM Plex Mono', size: 9 }, callback: v => prefix + v + suffix } }
+      x: { grid: { color: c.grid }, ticks: { color: c.tick, font: { family: 'IBM Plex Mono', size: 9 } } },
+      y: { grid: { color: c.grid }, ticks: { color: c.tick, font: { family: 'IBM Plex Mono', size: 9 }, callback: v => prefix + v + suffix } }
     }
   };
 }
 
+function renderChartUtilityPicker() {
+  const picker = document.getElementById('chartUtilityPicker');
+  if (!picker) return;
+  const allOn = chartUtilities.length === UTILITIES.length;
+  const noneOn = chartUtilities.length === 0;
+  picker.innerHTML =
+    `<span class="text-mono text-dim text-sm" style="margin-right:2px">UTILITIES:</span>` +
+    UTILITIES.map(u => {
+      const on = chartUtilities.includes(u.id);
+      return `<label class="cu-chip ${on ? 'on' : ''}" style="--cu:${u.color}">
+        <input type="checkbox" ${on ? 'checked' : ''} onchange="toggleChartUtility('${u.id}', this.checked)">
+        <span class="cu-dot" style="background:${u.color}"></span>${u.icon} ${u.label}
+      </label>`;
+    }).join('') +
+    `<button class="period-btn ${allOn ? 'active' : ''}" onclick="setAllChartUtilities(true)">ALL</button>
+     <button class="period-btn ${noneOn ? 'active' : ''}" onclick="setAllChartUtilities(false)">NONE</button>`;
+}
+
+function toggleChartUtility(id, checked) {
+  if (checked) { if (!chartUtilities.includes(id)) chartUtilities.push(id); }
+  else { chartUtilities = chartUtilities.filter(x => x !== id); }
+  renderCharts();
+}
+
+function setAllChartUtilities(all) {
+  chartUtilities = all ? UTILITIES.map(u => u.id) : [];
+  renderCharts();
+}
+
 function renderCharts() {
+  renderChartUtilityPicker();
+
   const months = getFilteredMonths();
   const labels = months.map(m => MONTHS[m.month-1] + "'" + String(m.year).slice(2));
+  const sel = chartUtilities;
+  const selUtils = UTILITIES.filter(u => sel.includes(u.id));
+  const tc = themeColors();
 
-  // Total cost chart
+  // Headline for the total-cost chart reflects the current selection
+  const titleEl = document.getElementById('title-totalCost');
+  if (titleEl) {
+    let scope;
+    if (selUtils.length === 0) scope = 'NO UTILITIES SELECTED';
+    else if (selUtils.length === UTILITIES.length) scope = 'ALL UTILITIES';
+    else scope = selUtils.map(u => u.label).join(', ').toUpperCase();
+    titleEl.textContent = 'TOTAL MONTHLY COST — ' + scope;
+  }
+
+  // Total cost chart (selected utilities only)
   const totalData = months.map(({year,month}) =>
-    state.entries.filter(e => e.enabled && e.year === year && e.month === month).reduce((s,e)=>s+e.amount,0));
+    state.entries.filter(e => e.enabled && sel.includes(e.utility) && e.year === year && e.month === month).reduce((s,e)=>s+e.amount,0));
 
   destroyChart('totalCost');
   const ctx1 = document.getElementById('totalCostChart').getContext('2d');
@@ -1839,14 +2021,14 @@ function renderCharts() {
     options: chartOptions({ prefix: '€' })
   });
 
-  // Per-utility stacked bar
+  // Per-utility stacked bar (selected utilities only)
   destroyChart('utilityBreakdown');
   const ctx2 = document.getElementById('utilityBreakdownChart').getContext('2d');
   charts.utilityBreakdown = new Chart(ctx2, {
     type: 'bar',
     data: {
       labels,
-      datasets: UTILITIES.map(u => ({
+      datasets: selUtils.map(u => ({
         label: u.label,
         data: months.map(({year,month}) => {
           const es = state.entries.filter(e => e.enabled && e.utility===u.id && e.year===year && e.month===month);
@@ -1862,18 +2044,15 @@ function renderCharts() {
       ...chartOptions({ prefix: '€' }),
       plugins: {
         ...chartOptions().plugins,
-        legend: {
-          display: true,
-          labels: { color: '#4a5068', font: { family: 'IBM Plex Mono', size: 9 }, boxWidth: 10 }
-        },
-        tooltip: { ...chartOptions({ prefix: '€' }).plugins.tooltip, callbacks: { label: ctx => ctx.dataset.label + ': €' + ctx.parsed.y.toFixed(2) } }
+        legend: chartLegend(),
+        tooltip: { ...chartTooltip(), callbacks: { label: ctx => ctx.dataset.label + ': €' + ctx.parsed.y.toFixed(2) } }
       },
       scales: { ...chartOptions().scales, x: { ...chartOptions().scales.x, stacked: true }, y: { ...chartOptions().scales.y, stacked: true } }
     }
   });
 
-  // Pie chart
-  const totals = UTILITIES.map(u => ({
+  // Pie chart (selected utilities only)
+  const totals = selUtils.map(u => ({
     label: u.label, color: u.color,
     val: state.entries.filter(e => e.enabled && months.some(m => m.year===e.year && m.month===e.month) && e.utility===u.id)
       .reduce((s,e)=>s+e.amount,0)
@@ -1885,68 +2064,81 @@ function renderCharts() {
     type: 'doughnut',
     data: {
       labels: totals.map(t=>t.label),
-      datasets: [{ data: totals.map(t=>t.val), backgroundColor: totals.map(t=>t.color+'cc'), borderColor: '#13161e', borderWidth: 2 }]
+      datasets: [{ data: totals.map(t=>t.val), backgroundColor: totals.map(t=>t.color+'cc'), borderColor: tc.tipBg, borderWidth: 2 }]
     },
     options: {
       responsive: true, maintainAspectRatio: false,
       plugins: {
-        legend: { display: true, position: 'bottom', labels: { color: '#4a5068', font: { family: 'IBM Plex Mono', size: 9 }, boxWidth: 10, padding: 12 } },
-        tooltip: { backgroundColor: 'rgba(255,255,255,0.97)', borderColor: '#c8ccd8', borderWidth: 1, titleColor: '#4a5068', bodyColor: '#1a1e2e', titleFont: { family: 'IBM Plex Mono', size: 10 }, bodyFont: { family: 'IBM Plex Mono', size: 12 }, callbacks: { label: ctx => ctx.label + ': €' + ctx.parsed.toFixed(2) } }
+        legend: { display: true, position: 'bottom', labels: { color: tc.legend, font: { family: 'IBM Plex Mono', size: 9 }, boxWidth: 10, padding: 12 } },
+        tooltip: { ...chartTooltip(), callbacks: { label: ctx => ctx.label + ': €' + ctx.parsed.toFixed(2) } }
       }
     }
   });
 
-  // Water consumption
-  const waterU = UTILITIES.find(u=>u.id==='water');
-  destroyChart('water');
-  const ctx4 = document.getElementById('waterChart').getContext('2d');
-  charts.water = new Chart(ctx4, {
-    type: 'bar',
-    data: {
-      labels,
-      datasets: [
-        { label: 'Consumption (m³)', data: months.map(({year,month}) => { const es=state.entries.filter(e=>e.enabled&&e.utility==='water'&&e.year===year&&e.month===month); const v=es.reduce((s,e)=>s+(e.consumption??0),0); return es.length&&v>0?v:null; }), backgroundColor: '#2563eb33', borderColor: '#2563eb', borderWidth: 1, borderRadius: 3, yAxisID: 'y' },
-        { label: 'Cost (€)', type: 'line', data: months.map(({year,month}) => { const es=state.entries.filter(e=>e.enabled&&e.utility==='water'&&e.year===year&&e.month===month); const v=es.reduce((s,e)=>s+e.amount,0); return es.length?v:null; }), borderColor: '#d97706', borderWidth: 2, pointRadius: 3, pointBackgroundColor: '#d97706', tension: 0.3, yAxisID: 'y2' }
-      ]
-    },
-    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: true, labels: { color: '#4a5068', font: { family: 'IBM Plex Mono', size: 9 }, boxWidth: 10 } }, tooltip: { backgroundColor: 'rgba(255,255,255,0.97)', borderColor: '#c8ccd8', borderWidth: 1, titleColor: '#4a5068', bodyColor: '#1a1e2e', titleFont: { family: 'IBM Plex Mono', size: 10 }, bodyFont: { family: 'IBM Plex Mono', size: 12 } } }, scales: { x: { grid: { color: '#e8eaef' }, ticks: { color: '#8b92a8', font: { family: 'IBM Plex Mono', size: 9 } } }, y: { grid: { color: '#e8eaef' }, ticks: { color: '#2563eb', font: { family: 'IBM Plex Mono', size: 9 } }, position: 'left' }, y2: { grid: { display: false }, ticks: { color: '#d97706', font: { family: 'IBM Plex Mono', size: 9 }, callback: v=>'€'+v }, position: 'right' } } }
-  });
-
-  // Electricity consumption with tariff bands
-  destroyChart('electric');
-  const ctx5 = document.getElementById('electricChart').getContext('2d');
-  const hasBreakdowns = state.tariffBands.length > 0 && state.entries.some(e=>e.utility==='electricity'&&e.tariffBreakdown);
-  let elecDatasets;
-  if (hasBreakdowns) {
-    elecDatasets = state.tariffBands.map(b => ({
-      label: b.name + ' (kWh)',
-      data: months.map(({year,month}) => {
-        const es = state.entries.filter(e=>e.enabled&&e.utility==='electricity'&&e.year===year&&e.month===month);
-        if (!es.length) return null;
-        return es.reduce((s,e)=>s+(e.tariffBreakdown?e.tariffBreakdown[b.id]||0:0),0);
-      }),
-      backgroundColor: b.color + '66',
-      borderColor: b.color,
-      borderWidth: 1,
-      borderRadius: 3,
-      stack: 'kwh',
-    }));
+  // Water consumption — only when Water is selected
+  const waterWrap = document.getElementById('wrap-water');
+  if (sel.includes('water')) {
+    if (waterWrap) waterWrap.style.display = '';
+    destroyChart('water');
+    const ctx4 = document.getElementById('waterChart').getContext('2d');
+    charts.water = new Chart(ctx4, {
+      type: 'bar',
+      data: {
+        labels,
+        datasets: [
+          { label: 'Consumption (m³)', data: months.map(({year,month}) => { const es=state.entries.filter(e=>e.enabled&&e.utility==='water'&&e.year===year&&e.month===month); const v=es.reduce((s,e)=>s+(e.consumption??0),0); return es.length&&v>0?v:null; }), backgroundColor: '#2563eb33', borderColor: '#2563eb', borderWidth: 1, borderRadius: 3, yAxisID: 'y' },
+          { label: 'Cost (€)', type: 'line', data: months.map(({year,month}) => { const es=state.entries.filter(e=>e.enabled&&e.utility==='water'&&e.year===year&&e.month===month); const v=es.reduce((s,e)=>s+e.amount,0); return es.length?v:null; }), borderColor: '#d97706', borderWidth: 2, pointRadius: 3, pointBackgroundColor: '#d97706', tension: 0.3, yAxisID: 'y2' }
+        ]
+      },
+      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: chartLegend(), tooltip: chartTooltip() }, scales: { x: { grid: { color: tc.grid }, ticks: { color: tc.tick, font: { family: 'IBM Plex Mono', size: 9 } } }, y: { grid: { color: tc.grid }, ticks: { color: '#2563eb', font: { family: 'IBM Plex Mono', size: 9 } }, position: 'left' }, y2: { grid: { display: false }, ticks: { color: '#d97706', font: { family: 'IBM Plex Mono', size: 9 }, callback: v=>'€'+v }, position: 'right' } } }
+    });
   } else {
-    elecDatasets = [{
-      label: 'Consumption (kWh)',
-      data: months.map(({year,month}) => { const es=state.entries.filter(e=>e.enabled&&e.utility==='electricity'&&e.year===year&&e.month===month); const v=es.reduce((s,e)=>s+(e.consumption??0),0); return es.length&&v>0?v:null; }),
-      backgroundColor: '#f5a62355',
-      borderColor: '#f5a623',
-      borderWidth: 1,
-      borderRadius: 3,
-    }];
+    if (waterWrap) waterWrap.style.display = 'none';
+    destroyChart('water');
   }
-  elecDatasets.push({ label: 'Cost (€)', type: 'line', data: months.map(({year,month}) => { const es=state.entries.filter(e=>e.enabled&&e.utility==='electricity'&&e.year===year&&e.month===month); const v=es.reduce((s,e)=>s+e.amount,0); return es.length?v:null; }), borderColor: '#0d9488', borderWidth: 2, pointRadius: 3, pointBackgroundColor: '#0d9488', tension: 0.3, yAxisID: 'y2' });
-  charts.electric = new Chart(ctx5, {
-    type: 'bar',
-    data: { labels, datasets: elecDatasets },
-    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: true, labels: { color: '#4a5068', font: { family: 'IBM Plex Mono', size: 9 }, boxWidth: 10 } }, tooltip: { backgroundColor: 'rgba(255,255,255,0.97)', borderColor: '#c8ccd8', borderWidth: 1, titleColor: '#4a5068', bodyColor: '#1a1e2e', titleFont: { family: 'IBM Plex Mono', size: 10 }, bodyFont: { family: 'IBM Plex Mono', size: 12 } } }, scales: { x: { grid: { color: '#e8eaef' }, ticks: { color: '#8b92a8', font: { family: 'IBM Plex Mono', size: 9 } } }, y: { grid: { color: '#e8eaef' }, ticks: { color: '#d97706', font: { family: 'IBM Plex Mono', size: 9 } }, stacked: true }, y2: { grid: { display: false }, ticks: { color: '#0d9488', font: { family: 'IBM Plex Mono', size: 9 }, callback: v=>'€'+v }, position: 'right' } } }
-  });
+
+  // Electricity consumption with tariff bands — only when Electricity is selected
+  const elecWrap = document.getElementById('wrap-electric');
+  if (sel.includes('electricity')) {
+    if (elecWrap) elecWrap.style.display = '';
+    destroyChart('electric');
+    const ctx5 = document.getElementById('electricChart').getContext('2d');
+    const hasBreakdowns = state.tariffBands.length > 0 && state.entries.some(e=>e.utility==='electricity'&&e.tariffBreakdown);
+    let elecDatasets;
+    if (hasBreakdowns) {
+      elecDatasets = state.tariffBands.map(b => ({
+        label: b.name + ' (kWh)',
+        data: months.map(({year,month}) => {
+          const es = state.entries.filter(e=>e.enabled&&e.utility==='electricity'&&e.year===year&&e.month===month);
+          if (!es.length) return null;
+          return es.reduce((s,e)=>s+(e.tariffBreakdown?e.tariffBreakdown[b.id]||0:0),0);
+        }),
+        backgroundColor: b.color + '66',
+        borderColor: b.color,
+        borderWidth: 1,
+        borderRadius: 3,
+        stack: 'kwh',
+      }));
+    } else {
+      elecDatasets = [{
+        label: 'Consumption (kWh)',
+        data: months.map(({year,month}) => { const es=state.entries.filter(e=>e.enabled&&e.utility==='electricity'&&e.year===year&&e.month===month); const v=es.reduce((s,e)=>s+(e.consumption??0),0); return es.length&&v>0?v:null; }),
+        backgroundColor: '#f5a62355',
+        borderColor: '#f5a623',
+        borderWidth: 1,
+        borderRadius: 3,
+      }];
+    }
+    elecDatasets.push({ label: 'Cost (€)', type: 'line', data: months.map(({year,month}) => { const es=state.entries.filter(e=>e.enabled&&e.utility==='electricity'&&e.year===year&&e.month===month); const v=es.reduce((s,e)=>s+e.amount,0); return es.length?v:null; }), borderColor: '#0d9488', borderWidth: 2, pointRadius: 3, pointBackgroundColor: '#0d9488', tension: 0.3, yAxisID: 'y2' });
+    charts.electric = new Chart(ctx5, {
+      type: 'bar',
+      data: { labels, datasets: elecDatasets },
+      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: chartLegend(), tooltip: chartTooltip() }, scales: { x: { grid: { color: tc.grid }, ticks: { color: tc.tick, font: { family: 'IBM Plex Mono', size: 9 } } }, y: { grid: { color: tc.grid }, ticks: { color: '#d97706', font: { family: 'IBM Plex Mono', size: 9 } }, stacked: true }, y2: { grid: { display: false }, ticks: { color: '#0d9488', font: { family: 'IBM Plex Mono', size: 9 }, callback: v=>'€'+v }, position: 'right' } } }
+    });
+  } else {
+    if (elecWrap) elecWrap.style.display = 'none';
+    destroyChart('electric');
+  }
 }
 
 function destroyChart(key) { if (charts[key]) { charts[key].destroy(); delete charts[key]; } }
@@ -2060,7 +2252,7 @@ function renderForecast() {
         { label: 'Forecast', data: [...actuals.map(()=>null), actuals[actuals.length-1]||projAvg, projAvg, projAvg], borderColor: '#0d9488', backgroundColor: 'rgba(13,148,136,0.07)', borderWidth: 2, borderDash: [6,3], fill: true, tension: 0, pointBackgroundColor: '#0d9488', pointRadius: 4, pointStyle: 'triangle' }
       ]
     },
-    options: { ...chartOptions({ prefix:'€' }), plugins: { ...chartOptions({ prefix:'€' }).plugins, legend: { display: true, labels: { color: '#4a5068', font: { family: 'IBM Plex Mono', size: 9 }, boxWidth: 10 } } } }
+    options: { ...chartOptions({ prefix:'€' }), plugins: { ...chartOptions({ prefix:'€' }).plugins, legend: chartLegend() } }
   });
 }
 
@@ -2125,12 +2317,12 @@ function renderAnnualSummary() {
     options: {
       responsive: true, maintainAspectRatio: false,
       plugins: {
-        legend: { display: true, labels: { color: '#4a5068', font: { family: 'IBM Plex Mono', size: 9 }, boxWidth: 10 } },
-        tooltip: { backgroundColor: 'rgba(255,255,255,0.97)', borderColor: '#c8ccd8', borderWidth: 1, titleColor: '#4a5068', bodyColor: '#1a1e2e', titleFont: { family: 'IBM Plex Mono', size: 10 }, bodyFont: { family: 'IBM Plex Mono', size: 12 }, callbacks: { label: ctx => ` ${ctx.dataset.label}: €${ctx.parsed.y.toFixed(2)}` } }
+        legend: chartLegend(),
+        tooltip: { ...chartTooltip(), callbacks: { label: ctx => ` ${ctx.dataset.label}: €${ctx.parsed.y.toFixed(2)}` } }
       },
       scales: {
-        x: { stacked: true, grid: { color: '#e8eaef' }, ticks: { color: '#8b92a8', font: { family: 'IBM Plex Mono', size: 10 } } },
-        y: { stacked: true, grid: { color: '#e8eaef' }, ticks: { color: '#8b92a8', font: { family: 'IBM Plex Mono', size: 10 }, callback: v => '€' + v } }
+        x: { stacked: true, grid: { color: themeColors().grid }, ticks: { color: themeColors().tick, font: { family: 'IBM Plex Mono', size: 10 } } },
+        y: { stacked: true, grid: { color: themeColors().grid }, ticks: { color: themeColors().tick, font: { family: 'IBM Plex Mono', size: 10 }, callback: v => '€' + v } }
       }
     }
   });
@@ -2235,6 +2427,37 @@ function refreshAll() {
 }
 
 // ═══════════════════════════════════════════════════════════
+// THEME (light / dark)
+// ═══════════════════════════════════════════════════════════
+function themeSetting() { return localStorage.getItem('theme') || 'system'; }
+function isDarkActive() {
+  const s = themeSetting();
+  if (s === 'dark') return true;
+  if (s === 'light') return false;
+  return !!(window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
+}
+function updateThemeToggleLabel() {
+  const btn = document.getElementById('themeToggle');
+  if (btn) btn.textContent = isDarkActive() ? '☀ LIGHT' : '☾ DARK';
+}
+function rerenderActiveCharts() {
+  const active = document.querySelector('.page.active');
+  if (!active) return;
+  const id = active.id.replace('page-', '');
+  if (id === 'dashboard') renderDashboard();
+  else if (id === 'charts') renderCharts();
+  else if (id === 'forecast') renderForecast();
+  else if (id === 'annual') renderAnnualSummary();
+}
+function toggleTheme() {
+  const next = isDarkActive() ? 'light' : 'dark';
+  localStorage.setItem('theme', next);
+  document.documentElement.setAttribute('data-theme', next);
+  updateThemeToggleLabel();
+  rerenderActiveCharts();
+}
+
+// ═══════════════════════════════════════════════════════════
 // INIT
 // ═══════════════════════════════════════════════════════════
 // Async init — load local cache first (instant render), then reconcile with Dropbox
@@ -2244,6 +2467,7 @@ function refreshAll() {
   }
   await loadState();
   Dropbox.init();
+  updateThemeToggleLabel();
   renderDashboard();
   renderEntry();
   // If we came back from a Dropbox redirect (http/https hosting), finish auth.
@@ -2252,6 +2476,13 @@ function refreshAll() {
     Dropbox.syncOnOpen(false);
   }
 })();
+
+// Follow OS light/dark changes while the user is on the "system" setting
+if (window.matchMedia) {
+  window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+    if (themeSetting() === 'system') { updateThemeToggleLabel(); rerenderActiveCharts(); }
+  });
+}
 
 // Re-sync when connection returns / tab refocuses
 window.addEventListener('online', () => Dropbox.syncOnOpen(false));
@@ -2266,7 +2497,7 @@ document.getElementById('modalOverlay').addEventListener('click', e => {
 
 // Keyboard shortcuts
 document.addEventListener('keydown', e => {
-  // Ctrl+Shift+A — open Add Entry (free in Chrome)
+  // Ctrl+Shift+E — open Add Entry (free in Chrome)
   if (e.ctrlKey && e.shiftKey && e.key === 'E') {
     e.preventDefault();
     // Switch to entry page if not already there
