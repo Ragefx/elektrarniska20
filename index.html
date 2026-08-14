@@ -705,11 +705,12 @@ body, .card, .utility-card, .summary-card, .chart-wrapper, .forecast-card,
 
   <!-- ══════════════════════════════ DASHBOARD ══════════════════════════════ -->
   <div class="page active" id="page-dashboard">
+    <div class="chart-util-picker" id="dashboardUtilityPicker"></div>
     <div class="summary-row" id="summaryRow"></div>
     <div class="dashboard-grid" id="dashboardGrid"></div>
     <div class="chart-row">
       <div class="chart-wrapper" style="grid-column:1/-1">
-        <div class="card-title">LAST 12 MONTHS — TOTAL MONTHLY COST</div>
+        <div class="card-title" id="dashChartTitle">LAST 12 MONTHS — TOTAL MONTHLY COST</div>
         <div class="chart-container"><canvas id="dashChart"></canvas></div>
       </div>
     </div>
@@ -1783,7 +1784,51 @@ function getFilteredMonths() {
 // ═══════════════════════════════════════════════════════════
 // DASHBOARD
 // ═══════════════════════════════════════════════════════════
+// Which utilities the Dashboard shows. Persisted in state (unlike the Charts
+// picker, which is a per-session view), so it survives reloads and syncs.
+function getDashboardUtilities() {
+  const all = UTILITIES.map(u => u.id);
+  if (!Array.isArray(state.dashboardUtilities)) return all;
+  return state.dashboardUtilities.filter(id => all.includes(id));
+}
+function setDashboardUtilities(ids) {
+  state.dashboardUtilities = ids;
+  saveState();
+  renderDashboard();
+}
+function toggleDashboardUtility(id, checked) {
+  const cur = getDashboardUtilities();
+  setDashboardUtilities(checked ? (cur.includes(id) ? cur : [...cur, id])
+                                : cur.filter(x => x !== id));
+}
+function setAllDashboardUtilities(all) {
+  setDashboardUtilities(all ? UTILITIES.map(u => u.id) : []);
+}
+
+function renderDashboardUtilityPicker() {
+  const picker = document.getElementById('dashboardUtilityPicker');
+  if (!picker) return;
+  const sel = getDashboardUtilities();
+  const allOn = sel.length === UTILITIES.length;
+  picker.innerHTML =
+    `<span class="text-mono text-dim text-sm" style="margin-right:2px">SHOW:</span>` +
+    UTILITIES.map(u => {
+      const on = sel.includes(u.id);
+      return `<label class="cu-chip ${on ? 'on' : ''}" style="--cu:${u.color}">
+        <input type="checkbox" ${on ? 'checked' : ''} onchange="toggleDashboardUtility('${u.id}', this.checked)">
+        <span class="cu-dot" style="background:${u.color}"></span>${u.icon} ${u.label}
+      </label>`;
+    }).join('') +
+    `<button class="period-btn ${allOn ? 'active' : ''}" onclick="setAllDashboardUtilities(true)">ALL</button>
+     <button class="period-btn ${sel.length === 0 ? 'active' : ''}" onclick="setAllDashboardUtilities(false)">NONE</button>` +
+    (allOn ? '' : `<span class="entry-count">${sel.length} of ${UTILITIES.length} · totals reflect this selection</span>`);
+}
+
 function renderDashboard() {
+  renderDashboardUtilityPicker();
+  const shown = getDashboardUtilities();
+  const inScope = e => shown.includes(e.utility);
+
   const now = new Date();
   const curY = now.getFullYear(), curM = now.getMonth() + 1;
 
@@ -1799,15 +1844,15 @@ function renderDashboard() {
     last3months.push({ year: y, month: m });
   }
 
-  // Summary row
-  const ytdEntries = state.entries.filter(e => e.enabled && e.year === curY);
+  // Summary row (scoped to the utilities selected above)
+  const ytdEntries = state.entries.filter(e => e.enabled && inScope(e) && e.year === curY);
   const ytdTotal = ytdEntries.reduce((s, e) => s + e.amount, 0);
-  const prevMonthEntries = state.entries.filter(e => e.enabled && e.year === prevY && e.month === prevM);
+  const prevMonthEntries = state.entries.filter(e => e.enabled && inScope(e) && e.year === prevY && e.month === prevM);
   const prevMonthTotal = prevMonthEntries.reduce((s,e) => s + e.amount, 0);
 
   // 3-month avg total
   const last3totals = last3months.map(({year, month}) =>
-    state.entries.filter(e => e.enabled && e.year === year && e.month === month).reduce((s,e) => s+e.amount, 0));
+    state.entries.filter(e => e.enabled && inScope(e) && e.year === year && e.month === month).reduce((s,e) => s+e.amount, 0));
   const last3avg = last3totals.reduce((s,v)=>s+v,0) / 3;
 
   document.getElementById('summaryRow').innerHTML = `
@@ -1830,7 +1875,12 @@ function renderDashboard() {
 
   // Per-utility cards: show prev month vs 3-month avg
   const grid = document.getElementById('dashboardGrid');
-  grid.innerHTML = UTILITIES.map(u => {
+  if (!shown.length) {
+    grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1"><div class="es-icon">🫥</div><div class="es-text">No utilities selected — pick some above to populate the dashboard.</div></div>`;
+    renderDashChart();
+    return;
+  }
+  grid.innerHTML = UTILITIES.filter(u => shown.includes(u.id)).map(u => {
     const prevEntries = state.entries.filter(e => e.utility === u.id && e.year === prevY && e.month === prevM && e.enabled);
     const amount = prevEntries.length ? prevEntries.reduce((s,e)=>s+e.amount,0) : null;
 
@@ -1874,10 +1924,18 @@ function renderDashboard() {
 }
 
 function renderDashChart() {
+  const shown = getDashboardUtilities();
+  const titleEl = document.getElementById('dashChartTitle');
+  if (titleEl) {
+    const scope = shown.length === UTILITIES.length ? 'TOTAL MONTHLY COST'
+      : shown.length === 0 ? 'NO UTILITIES SELECTED'
+      : UTILITIES.filter(u => shown.includes(u.id)).map(u => u.label).join(', ').toUpperCase();
+    titleEl.textContent = 'LAST 12 MONTHS — ' + scope;
+  }
   const months = lastNMonths(12);
   const labels = months.map(m => MONTHS[m.month-1] + ' ' + String(m.year).slice(2));
   const data = months.map(({year, month}) => {
-    return state.entries.filter(e => e.enabled && e.year === year && e.month === month)
+    return state.entries.filter(e => e.enabled && shown.includes(e.utility) && e.year === year && e.month === month)
       .reduce((s,e) => s + e.amount, 0);
   });
 
