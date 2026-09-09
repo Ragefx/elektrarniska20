@@ -1934,13 +1934,23 @@ function renderDashChart() {
   }
   const months = lastNMonths(12);
   const labels = months.map(m => MONTHS[m.month-1] + ' ' + String(m.year).slice(2));
-  const data = months.map(({year, month}) => {
-    return state.entries.filter(e => e.enabled && shown.includes(e.utility) && e.year === year && e.month === month)
-      .reduce((s,e) => s + e.amount, 0);
+  const monthEntries = months.map(({year, month}) =>
+    state.entries.filter(e => e.enabled && shown.includes(e.utility) && e.year === year && e.month === month));
+  const data = monthEntries.map(es => es.reduce((s,e) => s + e.amount, 0));
+  // Per-utility breakdown for each month's tooltip, e.g. "💧 Water: €20.00",
+  // largest amount first.
+  const breakdowns = monthEntries.map(es => {
+    const byUtil = {};
+    es.forEach(e => { byUtil[e.utility] = (byUtil[e.utility] || 0) + e.amount; });
+    return UTILITIES.filter(u => byUtil[u.id] > 0)
+      .map(u => ({ label: `${u.icon} ${u.label}: ${formatEur(byUtil[u.id])}`, amount: byUtil[u.id] }))
+      .sort((a, b) => b.amount - a.amount)
+      .map(x => x.label);
   });
 
   if (charts.dash) charts.dash.destroy();
   const ctx = document.getElementById('dashChart').getContext('2d');
+  const baseOpts = chartOptions({ prefix: '€' });
   charts.dash = new Chart(ctx, {
     type: 'bar',
     data: {
@@ -1957,7 +1967,22 @@ function renderDashChart() {
         borderRadius: 3,
       }]
     },
-    options: chartOptions({ prefix: '€' })
+    options: {
+      ...baseOpts,
+      plugins: {
+        ...baseOpts.plugins,
+        tooltip: {
+          ...baseOpts.plugins.tooltip,
+          callbacks: {
+            label: ctx => `Total: €${ctx.parsed.y.toFixed(2)}`,
+            afterBody: ctx => {
+              const lines = breakdowns[ctx[0].dataIndex];
+              return lines.length ? lines : ['No entries logged'];
+            },
+          },
+        },
+      },
+    },
   });
 }
 
