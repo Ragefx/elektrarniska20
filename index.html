@@ -1508,10 +1508,18 @@ function kostakSplit(t) {
 // ── Per-provider profiles ──
 // Each profile fingerprints a provider's bill and may override any field the
 // shared extractors got wrong. Add a new provider by appending one entry.
+//
+// IMPORTANT — fingerprint the ISSUER, not just a mention of the name:
+// a Telekom Slovenije mobile bill lists "Klici v mobilno omrežje Telemach
+// Slovenija" as an itemized line (calls routed to that network), which used
+// to false-match a bare /Telemach/i detector and misfile the whole bill as
+// Telemach internet. Anchor on something only the issuer's own bill has —
+// their domain, a "d.o.o./d.d." company-name suffix, or a repeated header —
+// never a company name alone.
 const BILL_PROFILES = [
   {
     id: 'kostak', label: 'KOSTAK',
-    detect: t => /KOSTAK/i.test(t),
+    detect: t => /KOSTAK,?\s*d\.\s*d\.|kostak\.si/i.test(t),
     parse: t => {
       const out = { provider: 'KOSTAK' };
       const s = kostakSplit(t);
@@ -1524,7 +1532,7 @@ const BILL_PROFILES = [
   },
   {
     id: 'telemach', label: 'Telemach',
-    detect: t => /Telemach/i.test(t),
+    detect: t => /Telemach\s+Slovenija\s+d\.\s*o\.\s*o\.|telemach\.si/i.test(t),
     parse: t => {
       // invoice is alphanumeric here (e.g. "Račun št. CLB-S1-1003258939")
       const m = t.match(/ra[čc]un\s*(?:št\.?|no\.?|#)?\s*[:.]?\s*([A-Za-z0-9][A-Za-z0-9\-\/]{4,})/i);
@@ -1534,7 +1542,7 @@ const BILL_PROFILES = [
   },
   {
     id: 'geni', label: 'GEN-I',
-    detect: t => /GEN-I/i.test(t),
+    detect: t => /GEN-I,?\s*trgovanje|gen-i\.si/i.test(t),
     parse: t => {
       // provider is not the first line here (that's "Nova Gorica, <date>");
       // invoice is "IR…" and lands after the customer number. Utility is left
@@ -1546,7 +1554,7 @@ const BILL_PROFILES = [
   },
   {
     id: 'rtv', label: 'RTV Slovenija',
-    detect: t => /RTV[\s-]*(?:SLOVENIJA|PRISPEVEK)/i.test(t),
+    detect: t => /RTV[- ]?PRISPEVEK|RTV\s+SLOVENIJA\s+obra[čc]unava/i.test(t),
     parse: t => {
       // payer's name is the first line, not the provider; the contact footer's
       // "telefonska" would wrongly imply phone → force "other" (razno).
@@ -1557,6 +1565,21 @@ const BILL_PROFILES = [
         provider: 'RTV Slovenija', utility: 'other',
         invoice: inv ? inv[1] : null,
         dueDate: due ? `${due[3]}-${String(+due[2]).padStart(2,'0')}-${String(+due[1]).padStart(2,'0')}` : null,
+      };
+    },
+  },
+  {
+    id: 'telekom-si', label: 'Telekom Slovenije',
+    detect: t => /Telekom\s+Slovenije/i.test(t),
+    parse: t => {
+      // period is only given as "Račun MM-YYYY" (no date range); invoice is
+      // the long numeric ID embedded in the "TS<n>-<n>-<digits>" document code.
+      const per = t.match(/Ra[čc]un\s+(\d{1,2})-(\d{4})/);
+      const inv = t.match(/TS\d-\d-(\d+)/i);
+      return {
+        provider: 'Telekom Slovenije', utility: 'phone',
+        month: per ? +per[1] : null, year: per ? +per[2] : null,
+        invoice: inv ? inv[1] : null,
       };
     },
   },
