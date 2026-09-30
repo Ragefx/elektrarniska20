@@ -744,6 +744,9 @@ body, .card, .utility-card, .summary-card, .chart-wrapper, .forecast-card,
 /* ── BILL INBOX ── */
 .inbox-modal { max-width: 1100px; padding: 22px; }
 .inbox-drop { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding: 12px 14px; border: 1.5px dashed var(--border-light); border-radius: var(--radius); margin-bottom: 12px; }
+.entry-drop { width: 100%; background: var(--bg-1); color: var(--text-0); cursor: pointer; text-align: left; font: inherit; transition: border-color .15s, background-color .15s; }
+.entry-drop:hover, body.dragging .entry-drop { border-color: var(--amber); background: var(--amber-glow); }
+.entry-drop:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
 .inbox-drop-ico { width: 30px; height: 36px; display: grid; place-items: end center; padding-bottom: 5px; border-radius: 3px 9px 3px 3px; border: 1px solid var(--amber); background: var(--amber-glow); color: var(--amber); font-family: var(--font-mono); font-size: 8px; font-weight: 600; letter-spacing: 0.05em; flex: none; }
 .inbox-drop-text { display: grid; gap: 1px; flex: 1 1 220px; min-width: 0; font-family: var(--font-mono); }
 .inbox-drop-text b { font-size: 12px; }
@@ -836,6 +839,11 @@ body.dragging .drop-hint { display: grid; }
             <button class="btn btn-primary" onclick="openAddModal()" title="Add entry (Ctrl+Shift+E)">+ ADD ENTRY <span style="font-size:9px;opacity:0.7;font-weight:400">Ctrl+Shift+E</span></button>
           </div>
         </div>
+        <button type="button" class="inbox-drop entry-drop" onclick="document.getElementById('billPdf').click()">
+          <span class="inbox-drop-ico" aria-hidden="true">PDF</span>
+          <span class="inbox-drop-text"><b>Drop bills here, or anywhere in the app</b><span>Several PDFs at once · read on this device · click to choose files</span></span>
+          <span class="btn btn-ghost btn-sm">CHOOSE PDFS</span>
+        </button>
         <div class="card" style="padding:0;overflow:hidden">
           <div id="entryTableWrap"></div>
         </div>
