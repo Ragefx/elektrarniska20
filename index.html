@@ -42,6 +42,8 @@
   --c-other: #64748b;
 
   --radius: 6px;
+  --btn-bg: #b45309;
+  --btn-fg: #ffffff;
   --font-mono: 'IBM Plex Mono', monospace;
   --font-sans: 'IBM Plex Sans', sans-serif;
 }
@@ -77,6 +79,8 @@
   --c-internet: #a78bfa;
   --c-phone: #f472b6;
   --c-other: #94a3b8;
+  --btn-bg: #f5a623;
+  --btn-fg: #1a1204;
 }
 /* Follow the OS preference until the user makes an explicit choice */
 @media (prefers-color-scheme: dark) {
@@ -98,7 +102,20 @@
     --teal-glow: rgba(45,212,191,0.12);
     --red: #f87171;
     --green: #4ade80;
+    --amber: #f5a623;
+    --blue: #60a5fa;
+    --purple: #a78bfa;
+    --orange: #fb923c;
+    --pink: #f472b6;
     --c-water: #60a5fa;
+    --c-electricity: #f5a623;
+    --c-gas: #fb923c;
+    --c-waste: #4ade80;
+    --c-internet: #a78bfa;
+    --c-phone: #f472b6;
+    --c-other: #94a3b8;
+    --btn-bg: #f5a623;
+    --btn-fg: #1a1204;
   }
 }
 
@@ -362,8 +379,8 @@ body {
   letter-spacing: 0.06em;
   transition: all 0.15s;
 }
-.btn-primary { background: var(--amber); color: #fff; font-weight: 600; }
-.btn-primary:hover { background: #b45309; }
+.btn-primary { background: var(--btn-bg); color: var(--btn-fg); font-weight: 600; }
+.btn-primary:hover { filter: brightness(1.08); }
 .btn-ghost { background: transparent; border: 1px solid var(--border); color: var(--text-1); }
 .btn-ghost:hover { border-color: var(--border-light); color: var(--text-0); }
 .btn-danger { background: transparent; border: 1px solid var(--red); color: var(--red); }
@@ -373,7 +390,7 @@ body {
 .btn-teal:hover { background: #0f766e; }
 
 /* ── TOGGLE ── */
-.toggle { position: relative; width: 36px; height: 20px; flex-shrink: 0; }
+.toggle { position: relative; display: inline-block; vertical-align: middle; width: 36px; height: 20px; flex-shrink: 0; }
 .toggle input { opacity: 0; width: 0; height: 0; }
 .toggle-slider {
   position: absolute; inset: 0;
@@ -514,20 +531,6 @@ body {
 }
 .modal-title { font-family: var(--font-mono); font-size: 14px; font-weight: 600; margin-bottom: 20px; color: var(--amber); }
 .modal-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 20px; }
-.import-banner {
-  background: var(--teal-glow);
-  border: 1px solid var(--teal);
-  border-radius: var(--radius);
-  padding: 10px 12px;
-  margin-bottom: 16px;
-  font-family: var(--font-mono);
-  font-size: 11px;
-  line-height: 1.5;
-  color: var(--text-1);
-}
-.import-banner .ib-title { color: var(--teal); font-weight: 600; letter-spacing: 0.04em; margin-bottom: 4px; }
-.import-banner .ib-warn { color: var(--amber); }
-.import-banner code { background: var(--bg-2); padding: 1px 5px; border-radius: 3px; color: var(--text-0); }
 
 /* ── ELECTRICITY SPECIAL ── */
 .elec-tariff-entry { background: var(--bg-2); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px; margin-bottom: 8px; }
@@ -560,6 +563,7 @@ body {
 .notification.show { transform: translateY(0); opacity: 1; }
 .notification.success { border-color: var(--green); color: var(--green); }
 .notification.info { border-color: var(--teal); color: var(--teal); }
+.notification .notif-undo { margin-left: 10px; background: none; border: 1px solid currentColor; color: inherit; font: inherit; font-weight: 600; border-radius: 3px; padding: 2px 8px; cursor: pointer; }
 
 /* ── RESPONSIVE HELPERS ── */
 .flex { display: flex; }
@@ -675,6 +679,105 @@ body, .card, .utility-card, .summary-card, .chart-wrapper, .forecast-card,
   .modal { padding: 20px; }
   .charts-controls > div[style*="margin-left"] { margin-left: 0 !important; flex-wrap: wrap; }
 }
+
+/* ── STATUS CHIPS ── */
+.chip { display: inline-flex; align-items: center; gap: 4px; font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.04em; padding: 2px 8px; border-radius: 999px; border: 1px solid var(--border-light); color: var(--text-1); white-space: nowrap; line-height: 1.5; }
+.chip.good { color: var(--green); background: color-mix(in srgb, var(--green) 12%, transparent); border-color: transparent; }
+.chip.bad { color: var(--red); background: color-mix(in srgb, var(--red) 11%, transparent); border-color: transparent; }
+.chip.muted { color: var(--text-2); background: var(--bg-3); border-color: transparent; }
+.chip.pending { border-style: dashed; color: var(--text-2); }
+
+/* ── DASHBOARD: THIS MONTH + BILL MATRIX ── */
+:root { --hi1: rgba(220,38,38,.07); --hi2: rgba(220,38,38,.15); --hi3: rgba(220,38,38,.26); --lo1: rgba(22,163,74,.08); --lo2: rgba(22,163,74,.16); --lo3: rgba(22,163,74,.27); }
+.bills-row { display: grid; grid-template-columns: minmax(290px, 360px) minmax(0, 1fr); gap: 12px; margin-bottom: 24px; align-items: start; }
+.bills-card { background: var(--bg-1); border: 1px solid var(--border); border-radius: var(--radius); min-width: 0; }
+.bc-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 12px 14px 0; }
+.bc-nav { display: flex; align-items: center; gap: 6px; }
+.bc-nav button { background: none; border: 1px solid var(--border); color: var(--text-1); border-radius: 4px; width: 22px; height: 22px; cursor: pointer; font-family: var(--font-mono); line-height: 1; }
+.bc-nav button:disabled { opacity: .35; cursor: default; }
+.bc-label { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-2); }
+.bc-count { font-family: var(--font-mono); font-size: 11px; color: var(--text-1); }
+.bc-total { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; padding: 4px 14px 0; }
+.bc-total .v { font-family: var(--font-mono); font-size: 26px; font-weight: 600; }
+.bc-aside { font-family: var(--font-mono); font-size: 10px; color: var(--text-2); }
+.bc-segs { display: grid; gap: 4px; padding: 10px 14px 2px; }
+.bc-seg { height: 6px; border-radius: 3px; }
+.bc-seg.off { border: 1px dashed var(--border-light); }
+.bc-group { display: block; padding: 12px 14px 4px; }
+.bills { list-style: none; margin: 0; padding: 0 6px 6px; display: grid; gap: 1px; }
+.bill { display: grid; grid-template-columns: 22px minmax(0, 1fr) auto; grid-template-areas: "ico name amt" "ico meta act"; column-gap: 8px; row-gap: 2px; align-items: center; padding: 7px 8px; border-radius: 5px; cursor: pointer; }
+.bill:hover { background: var(--bg-2); }
+.bill .ico { grid-area: ico; align-self: start; }
+.bill .name { grid-area: name; font-family: var(--font-mono); font-size: 12px; font-weight: 500; }
+.bill .amt { grid-area: amt; font-family: var(--font-mono); font-size: 12px; font-weight: 600; text-align: right; }
+.bill .meta { grid-area: meta; font-family: var(--font-mono); font-size: 10px; color: var(--text-2); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bill .act { grid-area: act; justify-self: end; }
+.bill.expected .name, .bill.expected .amt { color: var(--text-2); font-weight: 500; }
+.bill.overdue .meta { color: var(--red); }
+.bc-empty { padding: 4px 14px 8px; font-family: var(--font-mono); font-size: 10px; color: var(--text-2); }
+.bc-foot { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; padding: 10px 14px 12px; border-top: 1px solid var(--border); }
+.bc-foot .v { font-family: var(--font-mono); font-size: 15px; font-weight: 600; }
+.mx-scroll { overflow-x: auto; padding: 8px 8px 2px; }
+.mx { width: 100%; min-width: 520px; border-collapse: separate; border-spacing: 3px; font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+.mx th { font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-2); font-weight: 500; text-align: right; padding: 3px 6px; }
+.mx thead th:first-child { text-align: left; }
+.mx th.cur { color: var(--amber); }
+.mx tbody th, .mx tfoot th { font-size: 11px; letter-spacing: 0; text-transform: none; color: var(--text-0); text-align: left; white-space: nowrap; position: sticky; left: 0; background: var(--bg-1); z-index: 1; font-weight: 500; }
+.mx td { padding: 0; }
+.mx-cell { display: block; width: 100%; text-align: right; font: inherit; font-size: 11px; color: var(--text-0); background-color: var(--bg-2); background-image: linear-gradient(var(--t, transparent), var(--t, transparent)); border: 1px solid transparent; border-radius: 4px; padding: 7px 6px; cursor: pointer; }
+.mx-cell:hover { border-color: var(--border-light); }
+.mx-cell[data-t="hi1"] { --t: var(--hi1); } .mx-cell[data-t="hi2"] { --t: var(--hi2); } .mx-cell[data-t="hi3"] { --t: var(--hi3); }
+.mx-cell[data-t="lo1"] { --t: var(--lo1); } .mx-cell[data-t="lo2"] { --t: var(--lo2); } .mx-cell[data-t="lo3"] { --t: var(--lo3); }
+.mx-cell.none { background-color: transparent; color: var(--text-2); }
+.mx-cell.pending { background-color: transparent; color: var(--text-2); border: 1px dashed var(--border-light); }
+.mx-cell.missing { background-color: transparent; color: var(--red); border: 1px dashed var(--red); }
+.mx tfoot td { font-size: 10px; color: var(--text-1); text-align: right; padding: 6px 6px 2px; vertical-align: top; }
+.mx tfoot th { color: var(--text-2); font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase; vertical-align: top; padding-top: 6px; }
+.mx .partial { display: block; font-size: 8px; letter-spacing: 0.06em; color: var(--amber); text-transform: uppercase; margin-top: 2px; }
+.mx-legend { display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: center; padding: 6px 14px 12px; font-family: var(--font-mono); font-size: 9px; color: var(--text-2); }
+.mx-ramp { display: inline-flex; gap: 2px; vertical-align: middle; }
+.mx-ramp i { width: 12px; height: 9px; border-radius: 2px; background-color: var(--bg-2); background-image: linear-gradient(var(--t), var(--t)); }
+.mx-key { display: inline-block; width: 12px; height: 9px; border: 1px dashed var(--border-light); border-radius: 2px; vertical-align: middle; }
+.utility-btn.archived { opacity: 0.55; }
+.utility-btn .arch-tag { margin-left: auto; font-size: 8px; letter-spacing: 0.08em; color: var(--text-2); }
+
+/* ── BILL INBOX ── */
+.inbox-modal { max-width: 1100px; padding: 22px; }
+.inbox-drop { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding: 12px 14px; border: 1.5px dashed var(--border-light); border-radius: var(--radius); margin-bottom: 12px; }
+.inbox-drop-ico { width: 30px; height: 36px; display: grid; place-items: end center; padding-bottom: 5px; border-radius: 3px 9px 3px 3px; border: 1px solid var(--amber); background: var(--amber-glow); color: var(--amber); font-family: var(--font-mono); font-size: 8px; font-weight: 600; letter-spacing: 0.05em; flex: none; }
+.inbox-drop-text { display: grid; gap: 1px; flex: 1 1 220px; min-width: 0; font-family: var(--font-mono); }
+.inbox-drop-text b { font-size: 12px; }
+.inbox-drop-text span { font-size: 10px; color: var(--text-2); }
+.ib { border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+.ib-row { display: grid; grid-template-columns: 22px minmax(0,1.4fr) minmax(0,1fr) minmax(0,1.15fr) minmax(0,1.05fr) minmax(0,.8fr) minmax(0,1.1fr) minmax(0,1.05fr); gap: 8px; align-items: center; padding: 8px 12px; border-top: 1px solid var(--border); font-family: var(--font-mono); font-size: 11px; }
+.ib-head { border-top: 0; font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-2); background: var(--bg-2); }
+.ib-row .file, .ib-row .prov { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ib-row .file { color: var(--text-1); }
+.ib-row .form-input, .ib-row .form-select { width: 100%; min-width: 0; padding: 4px 6px; font-size: 11px; }
+.ib-row .num { text-align: right; }
+.ib-row .num input { text-align: right; }
+.ib-row.skip > :not(.chk):not(.st) { opacity: 0.5; }
+.ib-row input[type="checkbox"] { accent-color: var(--amber); width: 15px; height: 15px; margin: 0; }
+.inbox-foot { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center; justify-content: space-between; margin-top: 14px; }
+.inbox-summary { font-family: var(--font-mono); font-size: 11px; color: var(--text-1); }
+.inbox-acts { display: flex; gap: 8px; }
+.btn:disabled { opacity: 0.5; cursor: default; }
+.drop-hint { display: none; position: fixed; inset: 0; z-index: 400; background: rgba(0,0,0,.35); pointer-events: none; place-items: center; }
+body.dragging .drop-hint { display: grid; }
+.drop-hint span { font-family: var(--font-mono); font-size: 14px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--amber); background: var(--bg-1); border: 2px dashed var(--amber); border-radius: 10px; padding: 28px 40px; }
+@media (max-width: 900px) {
+  .bills-row { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 760px) {
+  .ib-head { display: none; }
+  .ib-row { grid-template-columns: 22px minmax(0, 1fr) minmax(0, auto); grid-template-areas: "chk file st" "chk prov cat" "chk per amt" "chk due due"; row-gap: 6px; padding: 10px 12px; }
+  .ib-row:nth-child(2) { border-top: 0; }
+  .ib-row .chk { grid-area: chk; align-self: start; padding-top: 2px; }
+  .ib-row .file { grid-area: file; } .ib-row .prov { grid-area: prov; } .ib-row .cat { grid-area: cat; }
+  .ib-row .per { grid-area: per; } .ib-row .amt { grid-area: amt; } .ib-row .due { grid-area: due; }
+  .ib-row .st { grid-area: st; justify-self: end; }
+  .inbox-modal { padding: 16px; }
+}
 </style>
 </head>
 <body>
@@ -707,6 +810,7 @@ body, .card, .utility-card, .summary-card, .chart-wrapper, .forecast-card,
   <div class="page active" id="page-dashboard">
     <div class="chart-util-picker" id="dashboardUtilityPicker"></div>
     <div class="summary-row" id="summaryRow"></div>
+    <div class="bills-row" id="billsRow"></div>
     <div class="dashboard-grid" id="dashboardGrid"></div>
     <div class="chart-row">
       <div class="chart-wrapper" style="grid-column:1/-1">
@@ -727,8 +831,8 @@ body, .card, .utility-card, .summary-card, .chart-wrapper, .forecast-card,
         <div class="entry-header">
           <div class="entry-title" id="entryTitle">—</div>
           <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-            <button class="btn btn-ghost" onclick="document.getElementById('billPdf').click()" title="Read a PDF bill and pre-fill the form">📄 IMPORT BILL</button>
-            <input type="file" id="billPdf" accept="application/pdf,.pdf" style="display:none" onchange="importBillPdf(event)">
+            <button class="btn btn-ghost" onclick="document.getElementById('billPdf').click()" title="Read PDF bills (several at once) — or drop them anywhere">📄 IMPORT BILLS</button>
+            <input type="file" id="billPdf" accept="application/pdf,.pdf" multiple style="display:none" onchange="importBillPdf(event)">
             <button class="btn btn-primary" onclick="openAddModal()" title="Add entry (Ctrl+Shift+E)">+ ADD ENTRY <span style="font-size:9px;opacity:0.7;font-weight:400">Ctrl+Shift+E</span></button>
           </div>
         </div>
@@ -824,6 +928,11 @@ body, .card, .utility-card, .summary-card, .chart-wrapper, .forecast-card,
   <!-- ══════════════════════════════ SETTINGS ══════════════════════════════ -->
   <div class="page" id="page-settings">
     <div class="settings-section">
+      <div class="settings-title">ARCHIVED UTILITIES</div>
+      <div class="text-mono text-dim text-sm" style="margin-bottom:10px">Archive a utility you no longer pay (e.g. a disconnected gas line). It disappears from the dashboard, forecast and pickers; its history stays in Charts, Annual Summary and Data Entry.</div>
+      <div class="forecast-controls" id="archiveConfig"></div>
+    </div>
+    <div class="settings-section">
       <div class="settings-title">ELECTRICITY TARIFF BANDS</div>
       <div class="tariff-config" id="tariffConfig"></div>
       <button class="btn btn-ghost btn-sm" style="margin-top:10px" onclick="addTariffBand()">+ ADD BAND</button>
@@ -848,9 +957,12 @@ body, .card, .utility-card, .summary-card, .chart-wrapper, .forecast-card,
 <div class="modal-overlay hidden" id="modalOverlay">
   <div class="modal">
     <div class="modal-title" id="modalTitle">ADD ENTRY</div>
-    <div class="import-banner" id="importBanner" style="display:none"></div>
 
     <div class="form-grid">
+      <div class="form-group">
+        <label class="form-label" for="fUtility">Category</label>
+        <select class="form-select" id="fUtility" onchange="onModalUtilityChange()"></select>
+      </div>
       <div class="form-group">
         <label class="form-label">Year</label>
         <input type="number" class="form-input" id="fYear" min="2000" max="2099" placeholder="2025">
@@ -870,6 +982,10 @@ body, .card, .utility-card, .summary-card, .chart-wrapper, .forecast-card,
         <label class="form-label">Amount (€)</label>
         <input type="number" class="form-input" id="fAmount" step="0.01" min="0" placeholder="0.00">
       </div>
+      <div class="form-group">
+        <label class="form-label" for="fDue">Due date (optional)</label>
+        <input type="date" class="form-input" id="fDue">
+      </div>
     </div>
 
     <!-- Utility-specific fields -->
@@ -887,6 +1003,13 @@ body, .card, .utility-card, .summary-card, .chart-wrapper, .forecast-card,
       </label>
       <span class="text-mono text-sm" style="color:var(--text-1)">Include in charts & calculations</span>
     </div>
+    <div class="flex items-center gap-8" style="margin:8px 0 4px">
+      <label class="toggle">
+        <input type="checkbox" id="fPaid">
+        <span class="toggle-slider"></span>
+      </label>
+      <span class="text-mono text-sm" style="color:var(--text-1)">Paid</span>
+    </div>
 
     <div class="modal-actions">
       <button class="btn btn-ghost" onclick="closeModal()">CANCEL</button>
@@ -894,6 +1017,27 @@ body, .card, .utility-card, .summary-card, .chart-wrapper, .forecast-card,
     </div>
   </div>
 </div>
+
+<!-- ══════════════════════════════ BILL INBOX ══════════════════════════════ -->
+<div class="modal-overlay hidden" id="inboxOverlay">
+  <div class="modal inbox-modal">
+    <div class="modal-title">BILL INBOX</div>
+    <div class="inbox-drop">
+      <span class="inbox-drop-ico" aria-hidden="true">PDF</span>
+      <span class="inbox-drop-text"><b>Drop more bills here, or anywhere in the app</b><span>Read on this device · check the rows, then save</span></span>
+      <button class="btn btn-ghost btn-sm" onclick="document.getElementById('billPdf').click()">CHOOSE PDFS</button>
+    </div>
+    <div class="ib" id="inboxRows" onchange="onInboxChange(event)"></div>
+    <div class="inbox-foot">
+      <span class="inbox-summary" id="inboxSummary"></span>
+      <span class="inbox-acts">
+        <button class="btn btn-ghost" onclick="closeInbox()">CANCEL</button>
+        <button class="btn btn-primary" id="inboxSave" onclick="saveInbox()">SAVE</button>
+      </span>
+    </div>
+  </div>
+</div>
+<div class="drop-hint" aria-hidden="true"><span>Drop bills to import</span></div>
 
 <div class="notification" id="notification"></div>
 
@@ -910,6 +1054,8 @@ const UTILITIES = [
   { id: 'phone',       label: 'Phone',       icon: '📱', color: '#f472b6', unit: null,   hasConsumption: false },
   { id: 'other',       label: 'Other',       icon: '🧾', color: '#94a3b8', unit: null,   hasConsumption: false },
 ];
+
+const CHART_FONT = "'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace";
 
 const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
@@ -931,6 +1077,53 @@ let entrySort = { field: 'date', dir: 'desc' };
 let entryFilter = { year: '', enabled: 'all', search: '' };
 
 const charts = {};
+
+// Entry fields beyond the basics: provider, invoice, dueDate ('YYYY-MM-DD'),
+// paid (bool), paidAt, updatedAt (ms). Deletions are remembered in
+// state.deleted = { id: ms } so a merge with another device can't resurrect them.
+function newId() {
+  if (window.crypto && crypto.randomUUID) return crypto.randomUUID();
+  return Date.now().toString(36) + Math.random().toString(36).slice(2, 10);
+}
+function markDeleted(ids) {
+  const now = Date.now();
+  state.deleted = state.deleted || {};
+  ids.forEach(id => { state.deleted[id] = now; });
+  state.entries = state.entries.filter(e => !ids.includes(e.id));
+}
+function todayISO() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+// Merge two copies of the state (this device + Dropbox). Entries are merged by
+// id (newer updatedAt wins, local wins ties); settings come from whichever copy
+// was modified last.
+const SETTING_KEYS = ['tariffBands', 'dashboardUtilities', 'forecastEnabled', 'archived'];
+function mergeStates(local, remote) {
+  const deleted = { ...(remote.deleted || {}) };
+  for (const [id, ts] of Object.entries(local.deleted || {})) deleted[id] = Math.max(ts, deleted[id] || 0);
+  const byId = new Map();
+  for (const e of [...(remote.entries || []), ...(local.entries || [])]) {
+    const cur = byId.get(e.id);
+    if (!cur || (e.updatedAt || 0) >= (cur.updatedAt || 0)) byId.set(e.id, e);
+  }
+  const entries = [...byId.values()].filter(e => !(deleted[e.id] && deleted[e.id] >= (e.updatedAt || 0)));
+  const newer = (local._lastModified || 0) >= (remote._lastModified || 0) ? local : remote;
+  const settings = {};
+  SETTING_KEYS.forEach(k => { if (newer[k] !== undefined) settings[k] = newer[k]; });
+  return { ...remote, ...local, ...settings, entries, deleted,
+           _lastModified: Math.max(local._lastModified || 0, remote._lastModified || 0) };
+}
+function stateFingerprint(st) {
+  const entries = [...(st.entries || [])].sort((a, b) => String(a.id).localeCompare(String(b.id)));
+  const out = { entries, deleted: st.deleted || {} };
+  SETTING_KEYS.forEach(k => { out[k] = st[k] ?? null; });
+  return JSON.stringify(out);
+}
+
+function isArchived(id) { return (state.archived || []).includes(id); }
+function activeUtilities() { return UTILITIES.filter(u => !isArchived(u.id)); }
 
 // ═══════════════════════════════════════════════════════════
 // PERSISTENCE
@@ -1172,7 +1365,7 @@ const Dropbox = (() => {
     return accessToken;
   }
 
-  // ---- Download remote state ----
+  // ---- Download remote state (+ its revision, for conditional uploads) ----
   async function download() {
     const token = await ensureAccessToken();
     const res = await fetch('https://content.dropboxapi.com/2/files/download', {
@@ -1188,63 +1381,71 @@ const Dropbox = (() => {
       if (errTxt && errTxt.includes('not_found')) return null;
       throw new Error('Download failed (' + res.status + ')');
     }
-    const text = await res.text();
-    return JSON.parse(text);
+    let rev = null;
+    try { rev = JSON.parse(res.headers.get('dropbox-api-result') || '{}').rev || null; } catch (e) {}
+    return { data: JSON.parse(await res.text()), rev };
   }
 
-  // ---- Upload current state ----
-  async function upload() {
+  // ---- Upload: only if the file is still at the revision we merged with ----
+  async function upload(rev, exists) {
     const token = await ensureAccessToken();
+    const mode = rev ? { '.tag': 'update', update: rev } : (exists ? 'overwrite' : 'add');
     const res = await fetch('https://content.dropboxapi.com/2/files/upload', {
       method: 'POST',
       headers: {
         'Authorization': 'Bearer ' + token,
         'Content-Type': 'application/octet-stream',
-        'Dropbox-API-Arg': JSON.stringify({
-          path: FILE_PATH, mode: 'overwrite', mute: true,
-        }),
+        'Dropbox-API-Arg': JSON.stringify({ path: FILE_PATH, mode, mute: true }),
       },
       body: JSON.stringify(state),
     });
+    if (res.status === 409) return 'conflict';     // someone else wrote first
     if (!res.ok) throw new Error('Upload failed (' + res.status + ')');
+    return 'ok';
   }
 
-  // ---- Debounced upload after edits ----
+  // ---- Sync = download → merge → adopt → conditional upload (retry on conflict) ----
+  async function sync() {
+    for (let attempt = 0; attempt < 3; attempt++) {
+      const remote = await download();
+      if (remote && remote.data) {
+        const merged = mergeStates(state, remote.data);     // merge with *current* local state
+        if (stateFingerprint(merged) !== stateFingerprint(state)) {
+          state = merged; saveLocalOnly(); refreshAll();
+        }
+        if (stateFingerprint(state) === stateFingerprint(remote.data)) return;
+      }
+      const r = await upload(remote && remote.rev, !!(remote && remote.data));
+      if (r === 'ok') return;
+    }
+    throw new Error('Kept conflicting with another device — try Sync now');
+  }
+
+  let running = null, again = false;
+  async function runSync() {
+    if (!isConnected()) { setStatus('off'); return; }
+    if (running) { again = true; return running; }
+    setStatus('syncing');
+    running = (async () => {
+      try {
+        do { again = false; await sync(); } while (again);
+        setStatus('synced');
+      } catch (e) {
+        setStatus(navigator.onLine ? 'error' : 'offline', e.message);
+      } finally { running = null; }
+    })();
+    return running;
+  }
+
+  // ---- Debounced sync after edits ----
   function scheduleUpload() {
     if (!isConnected()) return;
     clearTimeout(uploadTimer);
     setStatus('syncing');
-    uploadTimer = setTimeout(async () => {
-      try { await upload(); setStatus('synced'); }
-      catch (e) { setStatus(navigator.onLine ? 'error' : 'offline', e.message); }
-    }, 1500);
+    uploadTimer = setTimeout(runSync, 1500);
   }
 
-  // ---- On-open reconcile: newest wins, never let empty clobber real data ----
-  async function syncOnOpen(isFirstConnect) {
-    if (!isConnected()) { setStatus('off'); return; }
-    setStatus('syncing');
-    try {
-      const remote = await download();
-      const localStamp  = state._lastModified || 0;
-      const remoteStamp = remote && remote._lastModified || 0;
-      const localHasData  = (state.entries || []).length > 0;
-      const remoteHasData = remote && (remote.entries || []).length > 0;
-
-      if (remote && (remoteStamp > localStamp) && remoteHasData) {
-        // Cloud is newer → adopt it.
-        state = { ...state, ...remote };
-        await new Promise(r => { saveLocalOnly(); r(); });
-        refreshAll();
-      } else if (!remote || (!remoteHasData && localHasData) || (localStamp > remoteStamp)) {
-        // No cloud file, or local is newer/richer → push local up.
-        await upload();
-      }
-      setStatus('synced');
-    } catch (e) {
-      setStatus(navigator.onLine ? 'error' : 'offline', e.message);
-    }
-  }
+  async function syncOnOpen() { return runSync(); }
 
   // write to IndexedDB without re-triggering an upload (used when adopting cloud data)
   function saveLocalOnly() {
@@ -1290,7 +1491,7 @@ const Dropbox = (() => {
       el.innerHTML = `
         <div class="dbx-sub" style="margin-bottom:10px">Save your data to Dropbox automatically. One-time setup — you stay connected after that.</div>
         <label class="dbx-label">Dropbox App key</label>
-        <input class="dbx-input" id="dbxAppKeyInput" placeholder="your app key" value="${cfg.appKey}">
+        <input class="dbx-input" id="dbxAppKeyInput" placeholder="your app key" value="${escHtml(cfg.appKey)}">
         <button class="btn btn-ghost btn-sm" style="margin-top:10px" onclick="Dropbox.connect()">CONNECT DROPBOX</button>
         <div id="dbxCodeBox" style="display:none;margin-top:14px">
           <label class="dbx-label">Paste the authorization code from Dropbox</label>
@@ -1359,15 +1560,26 @@ function importData(event) {
   if (!file) return;
   const reader = new FileReader();
   reader.onload = e => {
-    try {
-      const imported = JSON.parse(e.target.result);
-      state = { ...state, ...imported };
-      saveState();
-      refreshAll();
-      notify('Data imported successfully', 'success');
-    } catch {
-      notify('Invalid JSON file', 'info');
+    let imported;
+    try { imported = JSON.parse(e.target.result); }
+    catch { notify('That file isn’t valid JSON', 'info'); return; }
+    if (!imported || !Array.isArray(imported.entries)) {
+      notify('That file isn’t a tracker backup (it has no entries list)', 'info'); return;
     }
+    const cur = state.entries.length, inc = imported.entries.length;
+    if (!confirm(`Replace your ${cur} entries with the ${inc} entries in this backup?` +
+        (cur ? '\n\nA backup of your current data is downloaded first.' : ''))) return;
+    if (cur) exportData();
+    const now = Date.now();
+    const incoming = imported.entries.map(x => ({ ...x, id: x.id || newId(), updatedAt: now }));
+    const keep = new Set(incoming.map(x => x.id));
+    const deleted = { ...(state.deleted || {}) };
+    state.entries.forEach(x => { if (!keep.has(x.id)) deleted[x.id] = now; });
+    keep.forEach(id => delete deleted[id]);
+    state = { ...state, ...imported, entries: incoming, deleted };
+    saveState();
+    refreshAll();
+    notify(`Imported ${inc} entries`, 'success');
   };
   reader.readAsText(file);
   event.target.value = '';
@@ -1607,119 +1819,219 @@ function parseBill(text) {
   return out;
 }
 
-async function importBillPdf(event) {
-  const file = event.target.files[0];
+// ═══════════════════════════════════════════════════════════
+// BILL INBOX — read several PDFs, review them in one table, save all
+// ═══════════════════════════════════════════════════════════
+let inboxItems = [];
+
+async function extractPdfText(file) {
+  const pdfjs = await loadPdfJs();
+  const doc = await pdfjs.getDocument({ data: await file.arrayBuffer(), isEvalSupported: false }).promise;
+  let text = '';
+  for (let i = 1; i <= doc.numPages; i++) {
+    const content = await (await doc.getPage(i)).getTextContent();
+    content.items.forEach(it => { text += (it.str || '') + (it.hasEOL ? '\n' : ' '); });
+    text += '\n';
+  }
+  return text;
+}
+
+function importBillPdf(event) {
+  const files = [...event.target.files];
   event.target.value = '';
-  if (!file) return;
-  notify('Reading PDF…', 'info');
-  try {
-    const pdfjs = await loadPdfJs();
-    const buf = await file.arrayBuffer();
-    const doc = await pdfjs.getDocument({ data: buf }).promise;
-    let text = '';
-    for (let i = 1; i <= doc.numPages; i++) {
-      const page = await doc.getPage(i);
-      const content = await page.getTextContent();
-      content.items.forEach(it => { text += (it.str || '') + (it.hasEOL ? '\n' : ' '); });
-      text += '\n';
+  if (files.length) openInbox(files);
+}
+
+function inboxValid(it) {
+  return !!(getUtility(it.utility) && it.year && it.month && it.amount != null && !isNaN(it.amount) && it.amount >= 0);
+}
+
+// Same bill already saved? Match on category + invoice number (also found in
+// comments of older imports), or on category + period + amount when there's no invoice.
+function findDuplicate(it) {
+  const inv = it.invoice;
+  const saved = state.entries.find(e => e.utility === it.utility && (inv
+    ? (e.invoice === inv || (e.comment || '').includes(inv))
+    : (e.year === it.year && e.month === it.month && Math.abs(e.amount - it.amount) < 0.005)));
+  if (saved) return 'Already saved';
+  const twin = inboxItems.find(x => x !== it && x.status !== 'reading' && x.utility === it.utility &&
+    (inv ? x.invoice === inv : (x.year === it.year && x.month === it.month && x.amount === it.amount)));
+  return twin ? 'Twice in this batch' : null;
+}
+
+function inboxStatus(it) {
+  if (!inboxValid(it)) { it.status = 'check'; return; }
+  const dup = findDuplicate(it);
+  it.status = dup ? 'duplicate' : 'ready';
+  it.dupNote = dup || '';
+}
+
+function parsedToItems(p, file) {
+  const parts = (Array.isArray(p.entries) && p.entries.length) ? p.entries : [{ utility: p.utility, amount: p.amount }];
+  const items = parts.map((e, i) => {
+    const u = getUtility(e.utility);
+    const it = {
+      key: newId(), file, sameFile: i > 0, provider: p.provider, profile: p.profile,
+      utility: u ? e.utility : '', year: p.year, month: p.month, amount: e.amount ?? null,
+      dueDate: p.dueDate || null, invoice: p.invoice || null, meter: p.meter, note: e.note || '',
+      part: parts.length > 1 ? `${i + 1} of ${parts.length}` : '',
+      combined: !!p.combined && parts.length === 1, consumption: null,
+    };
+    if (parts.length === 1 && u && u.hasConsumption && !u.hasTariffs && p.meter && p.meter.diff > 0) it.consumption = p.meter.diff;
+    return it;
+  });
+  return items;
+}
+
+async function openInbox(files) {
+  const pdfs = files.filter(f => /\.pdf$/i.test(f.name) || f.type === 'application/pdf');
+  if (!pdfs.length) { notify('Only PDF bills can be imported', 'info'); return; }
+  document.getElementById('inboxOverlay').classList.remove('hidden');
+  const placeholders = pdfs.map(f => ({ key: newId(), file: f.name, status: 'reading' }));
+  inboxItems.push(...placeholders);
+  renderInbox();
+  for (let k = 0; k < pdfs.length; k++) {
+    let items;
+    try {
+      const text = await extractPdfText(pdfs[k]);
+      if (!text.replace(/\s/g, '').length) throw new Error('scan');
+      items = parsedToItems(parseBill(text), pdfs[k].name);
+    } catch (err) {
+      items = [{ key: newId(), file: pdfs[k].name, status: 'error',
+        error: err.message === 'scan' ? 'No text · scanned image' : 'Couldn’t read this PDF' }];
     }
-    if (!text.replace(/\s/g, '').length) {
-      notify('No text found — looks like a scanned image (OCR not supported)', 'info');
-      return;
-    }
-    const parsed = parseBill(text);
-    applyParsedBill(parsed, file.name);
-    notify(parsed.amount != null ? 'Bill read — verify & save' : 'Read PDF, but couldn’t detect the total', parsed.amount != null ? 'success' : 'info');
-  } catch (err) {
-    console.error('PDF import failed', err);
-    notify('Could not read this PDF (offline, or a scanned image?)', 'info');
+    const at = inboxItems.indexOf(placeholders[k]);
+    if (at < 0) continue;                               // inbox was closed meanwhile
+    inboxItems.splice(at, 1, ...items);
+    items.forEach(it => { if (it.status !== 'error') { inboxStatus(it); it.include = it.status === 'ready'; } });
+    renderInbox();
   }
 }
 
-function hideImportBanner() {
-  const b = document.getElementById('importBanner');
-  if (b) { b.style.display = 'none'; b.innerHTML = ''; }
-}
-
-// Import queue: some bills (e.g. KOSTAK) map to several entries. We confirm
-// each one in the normal Add modal, then advance to the next on save.
-let _importMeta = null;      // shared fields for the whole bill
-let _importPending = [];     // entry descriptors still to confirm
-let _importTotal = 0;        // total entries for this bill
-
-function applyParsedBill(p, filename) {
-  _importMeta = { year: p.year, month: p.month, provider: p.provider, invoice: p.invoice,
-                  dueDate: p.dueDate, meter: p.meter, filename, profile: p.profile, combined: p.combined };
-  let items;
-  if (Array.isArray(p.entries) && p.entries.length) {
-    items = p.entries.map(e => ({ utility: e.utility, amount: e.amount, consumption: e.consumption ?? null, note: e.note }));
-  } else {
-    items = [{ utility: p.utility || currentUtility, amount: p.amount, consumption: null }];
+function inboxRowHtml(it) {
+  const file = `<span class="file" title="${escHtml(it.file)}">${it.sameFile ? '↳ same file' : escHtml(it.file)}</span>`;
+  if (it.status === 'reading' || it.status === 'error') {
+    const chip = it.status === 'reading' ? '<span class="chip">Reading…</span>' : `<span class="chip bad">${escHtml(it.error)}</span>`;
+    return `<div class="ib-row skip"><span class="chk"><input type="checkbox" disabled aria-label="Not importable"></span>${file}
+      <span class="prov">—</span><span class="cat"></span><span class="per"></span><span class="amt num"></span><span class="due"></span><span class="st">${chip}</span></div>`;
   }
-  _importTotal = items.length;
-  _importPending = items;
-  openNextImportEntry();
+  const opts = (it.utility ? '' : '<option value="" selected>Choose…</option>') +
+    UTILITIES.map(u => `<option value="${u.id}" ${u.id === it.utility ? 'selected' : ''}>${u.icon} ${u.label}</option>`).join('');
+  const period = it.year && it.month ? `${it.year}-${String(it.month).padStart(2, '0')}` : '';
+  const chip = it.status === 'ready' ? `<span class="chip good">Ready${it.part ? ' · split ' + it.part : ''}</span>`
+    : it.status === 'duplicate' ? `<span class="chip muted">${escHtml(it.dupNote)}</span>`
+    : '<span class="chip bad">Check fields</span>';
+  return `<div class="ib-row ${it.include ? '' : 'skip'}" data-key="${it.key}">
+    <span class="chk"><input type="checkbox" data-f="include" ${it.include ? 'checked' : ''} aria-label="Include this bill"></span>
+    ${file}
+    <span class="prov" title="${escHtml(it.provider || '')}">${escHtml(it.profile || it.provider || 'Unrecognized')}</span>
+    <span class="cat"><select class="form-select" data-f="utility" aria-label="Category">${opts}</select></span>
+    <span class="per"><input type="month" class="form-input" data-f="period" value="${period}" aria-label="Billing period"></span>
+    <span class="amt num"><input type="number" class="form-input" data-f="amount" step="0.01" min="0" value="${it.amount != null ? it.amount.toFixed(2) : ''}" aria-label="Amount in euro"></span>
+    <span class="due"><input type="date" class="form-input" data-f="dueDate" value="${it.dueDate || ''}" aria-label="Due date"></span>
+    <span class="st">${chip}</span>
+  </div>`;
 }
 
-function openNextImportEntry() {
-  if (!_importPending || !_importPending.length) return;
-  const item = _importPending.shift();
-  const idx = _importTotal - _importPending.length; // 1-based
-  const m = _importMeta;
-  const now = new Date();
-  editingId = null;
+function renderInbox() {
+  const head = `<div class="ib-row ib-head"><span></span><span>File</span><span>Recognized</span><span>Category</span>
+    <span>Period</span><span class="num">Amount (€)</span><span>Due</span><span>Status</span></div>`;
+  document.getElementById('inboxRows').innerHTML = head + inboxItems.map(inboxRowHtml).join('');
+  updateInboxSummary();
+}
 
-  const util = (item.utility && getUtility(item.utility)) ? item.utility : currentUtility;
-  currentUtility = util; renderEntry();
-  const u = getUtility(currentUtility);
+function updateInboxSummary() {
+  const reading = inboxItems.filter(x => x.status === 'reading').length;
+  const ticked = inboxItems.filter(x => x.include && inboxValid(x)).length;
+  const dups = inboxItems.filter(x => x.status === 'duplicate' && !x.include).length;
+  const bad = inboxItems.filter(x => x.status === 'error' || x.status === 'check').length;
+  const parts = [`${ticked} ${ticked === 1 ? 'entry' : 'entries'} ready`];
+  if (dups) parts.push(`${dups} already saved`);
+  if (bad) parts.push(`${bad} need${bad === 1 ? 's' : ''} attention`);
+  if (reading) parts.push(`reading ${reading}…`);
+  document.getElementById('inboxSummary').textContent = parts.join(' · ');
+  const btn = document.getElementById('inboxSave');
+  btn.textContent = ticked ? `SAVE ${ticked} ${ticked === 1 ? 'ENTRY' : 'ENTRIES'}` : 'NOTHING TO SAVE';
+  btn.disabled = !ticked;
+}
 
-  document.getElementById('modalTitle').textContent = 'ADD ENTRY — ' + u.label.toUpperCase();
-  document.getElementById('fYear').value = m.year || now.getFullYear();
-  document.getElementById('fMonth').value = m.month || (now.getMonth() + 1);
-  document.getElementById('fAmount').value = (item.amount != null) ? item.amount.toFixed(2) : '';
-  document.getElementById('fEnabled').checked = true;
+function onInboxChange(ev) {
+  const el = ev.target, row = el.closest('[data-key]');
+  if (!row) return;
+  const it = inboxItems.find(x => x.key === row.dataset.key);
+  const f = el.dataset.f;
+  if (!it || !f) return;
+  if (f === 'include') it.include = el.checked;
+  else {
+    if (f === 'utility') it.utility = el.value;
+    if (f === 'amount') it.amount = el.value === '' ? null : parseFloat(el.value);
+    if (f === 'dueDate') it.dueDate = el.value || null;
+    if (f === 'period') { const [y, m] = el.value.split('-').map(Number); it.year = y || null; it.month = m || null; }
+    const before = it.status;
+    inboxStatus(it);
+    if (before === 'check' && it.status === 'ready') it.include = true;
+  }
+  renderInbox();
+}
 
+function billComment(it) {
+  const u = getUtility(it.utility);
   const bits = [];
-  if (m.provider) bits.push(m.provider);
-  if (m.invoice) bits.push('račun ' + m.invoice);
-  if (m.dueDate) bits.push('zapadlost ' + m.dueDate);
-  if (m.meter && m.meter.no && u.hasConsumption) {
-    let ms = 'števec ' + m.meter.no;
-    if (m.meter.prev != null && m.meter.cur != null) ms += `: ${m.meter.prev}→${m.meter.cur} (${m.meter.diff}${u.unit ? ' ' + u.unit : ''})`;
+  if (it.provider) bits.push(it.provider);
+  if (it.invoice) bits.push('račun ' + it.invoice);
+  if (it.dueDate) bits.push('zapadlost ' + it.dueDate);
+  if (it.meter && it.meter.no && u && u.hasConsumption) {
+    let ms = 'števec ' + it.meter.no;
+    if (it.meter.prev != null && it.meter.cur != null) ms += `: ${it.meter.prev}→${it.meter.cur} (${it.meter.diff}${u.unit ? ' ' + u.unit : ''})`;
     bits.push(ms);
   }
-  if (item.note) bits.push(item.note);
-  document.getElementById('fComment').value = bits.join(' · ');
-
-  buildSpecificFields();
-  if (u.hasConsumption && !u.hasTariffs) {
-    const c = document.getElementById('fConsumption');
-    if (c) {
-      if (item.consumption != null) c.value = item.consumption;
-      else if (_importTotal === 1 && m.meter && m.meter.diff != null && m.meter.diff > 0) c.value = m.meter.diff;
-    }
-  }
-
-  const banner = document.getElementById('importBanner');
-  const parts = [`Amount <code>${item.amount != null ? formatEur(item.amount) : '—'}</code>`,
-                 `Period <code>${m.month || '?'}/${m.year || '?'}</code>`];
-  if (m.meter && m.meter.no && u.hasConsumption) parts.push(`Meter <code>${m.meter.no}</code>${m.meter.prev != null ? ` (${m.meter.prev}→${m.meter.cur})` : ''}`);
-  let step = '';
-  if (_importTotal > 1) step = `<div class="ib-warn">Entry ${idx} of ${_importTotal} — <strong>${escHtml(u.label)}</strong>. Save this and the next opens automatically.</div>`;
-  let warn = '';
-  if (m.combined && _importTotal === 1) warn += `<div class="ib-warn">⚠ Combined municipal bill (water + waste). The amount is the full total — adjust if you split categories.</div>`;
-  if (item.amount == null) warn += `<div class="ib-warn">⚠ Couldn't read the amount — enter it manually.</div>`;
-  const tag = m.profile ? `Recognized: ${escHtml(m.profile)}` : 'Unrecognized layout — generic read, check fields';
-  banner.innerHTML = `<div class="ib-title">📄 Auto-filled from ${escHtml(m.filename)} — please verify before saving</div><div style="margin-bottom:4px;color:var(--text-2)">${tag}</div>${parts.join(' · ')}${step}${warn}`;
-  banner.style.display = '';
-
-  document.getElementById('modalOverlay').classList.remove('hidden');
-  setTimeout(() => { const a = document.getElementById('fAmount'); if (a) a.select(); }, 50);
+  if (it.note) bits.push(it.note);
+  return bits.join(' · ');
 }
 
+function saveInbox() {
+  const toSave = inboxItems.filter(x => x.include && inboxValid(x));
+  if (!toSave.length) return;
+  const now = Date.now(), monthAgo = new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10);
+  toSave.forEach(it => {
+    // Bills that fell due over a month ago (backfilled history) are assumed paid
+    const paid = !!(it.dueDate && it.dueDate < monthAgo);
+    state.entries.push({
+      id: newId(), utility: it.utility, year: it.year, month: it.month, amount: it.amount,
+      consumption: it.consumption ?? null, tariffBreakdown: null, comment: billComment(it), enabled: true,
+      provider: it.provider || null, invoice: it.invoice || null, dueDate: it.dueDate || null,
+      paid, paidAt: paid ? it.dueDate : null, updatedAt: now, source: 'pdf',
+    });
+  });
+  saveState();
+  closeInbox();
+  refreshAll();
+  notify(`Saved ${toSave.length} ${toSave.length === 1 ? 'entry' : 'entries'}`, 'success');
+}
+
+function closeInbox() {
+  document.getElementById('inboxOverlay').classList.add('hidden');
+  inboxItems = [];
+}
+
+// Drop PDFs anywhere in the app
+(() => {
+  let depth = 0;
+  const hasFiles = e => e.dataTransfer && [...e.dataTransfer.types].includes('Files');
+  window.addEventListener('dragenter', e => { if (hasFiles(e)) { depth++; document.body.classList.add('dragging'); } });
+  window.addEventListener('dragleave', e => { if (hasFiles(e) && --depth <= 0) { depth = 0; document.body.classList.remove('dragging'); } });
+  window.addEventListener('dragover', e => { if (hasFiles(e)) e.preventDefault(); });
+  window.addEventListener('drop', e => {
+    if (!hasFiles(e)) return;
+    e.preventDefault(); depth = 0; document.body.classList.remove('dragging');
+    openInbox([...e.dataTransfer.files]);
+  });
+})();
+
 function clearAllData() {
-  if (!confirm('Clear ALL data? This cannot be undone.')) return;
-  state.entries = [];
+  if (!confirm('Clear ALL data? A backup is downloaded first.')) return;
+  if (state.entries.length) exportData();
+  markDeleted(state.entries.map(e => e.id));
   saveState();
   refreshAll();
   notify('All data cleared', 'info');
@@ -1810,7 +2122,7 @@ function getFilteredMonths() {
 // Which utilities the Dashboard shows. Persisted in state (unlike the Charts
 // picker, which is a per-session view), so it survives reloads and syncs.
 function getDashboardUtilities() {
-  const all = UTILITIES.map(u => u.id);
+  const all = activeUtilities().map(u => u.id);
   if (!Array.isArray(state.dashboardUtilities)) return all;
   return state.dashboardUtilities.filter(id => all.includes(id));
 }
@@ -1825,17 +2137,18 @@ function toggleDashboardUtility(id, checked) {
                                 : cur.filter(x => x !== id));
 }
 function setAllDashboardUtilities(all) {
-  setDashboardUtilities(all ? UTILITIES.map(u => u.id) : []);
+  setDashboardUtilities(all ? activeUtilities().map(u => u.id) : []);
 }
 
 function renderDashboardUtilityPicker() {
   const picker = document.getElementById('dashboardUtilityPicker');
   if (!picker) return;
   const sel = getDashboardUtilities();
-  const allOn = sel.length === UTILITIES.length;
+  const act = activeUtilities();
+  const allOn = sel.length === act.length;
   picker.innerHTML =
     `<span class="text-mono text-dim text-sm" style="margin-right:2px">SHOW:</span>` +
-    UTILITIES.map(u => {
+    act.map(u => {
       const on = sel.includes(u.id);
       return `<label class="cu-chip ${on ? 'on' : ''}" style="--cu:${u.color}">
         <input type="checkbox" ${on ? 'checked' : ''} onchange="toggleDashboardUtility('${u.id}', this.checked)">
@@ -1844,7 +2157,183 @@ function renderDashboardUtilityPicker() {
     }).join('') +
     `<button class="period-btn ${allOn ? 'active' : ''}" onclick="setAllDashboardUtilities(true)">ALL</button>
      <button class="period-btn ${sel.length === 0 ? 'active' : ''}" onclick="setAllDashboardUtilities(false)">NONE</button>` +
-    (allOn ? '' : `<span class="entry-count">${sel.length} of ${UTILITIES.length} · totals reflect this selection</span>`);
+    (allOn ? '' : `<span class="entry-count">${sel.length} of ${act.length} · totals reflect this selection</span>`);
+}
+
+// ── Bills by month: what's in, what's due, what's still expected ──
+function monthIdx(y, m) { return y * 12 + (m - 1); }
+function idxToYM(i) { return { y: Math.floor(i / 12), m: (i % 12) + 1 }; }
+function currentMonthIdx() { const d = new Date(); return monthIdx(d.getFullYear(), d.getMonth() + 1); }
+function entriesIn(uid, y, m) { return state.entries.filter(e => e.enabled && e.utility === uid && e.year === y && e.month === m); }
+function billedIn(uid, i) { return state.entries.some(e => e.enabled && e.utility === uid && monthIdx(e.year, e.month) === i); }
+// A month normally has a bill from a utility billed the month before, or in 2 of the 3 months before.
+function isExpected(uid, y, m) {
+  const i = monthIdx(y, m);
+  return billedIn(uid, i - 1) || [1, 2, 3].filter(k => billedIn(uid, i - k)).length >= 2;
+}
+function daysUntil(iso) { return Math.round((new Date(iso + 'T00:00') - new Date(todayISO() + 'T00:00')) / 86400000); }
+function fmtDay(iso) { const d = new Date(iso + 'T00:00'); return d.getDate() + ' ' + MONTHS[d.getMonth()]; }
+function sumAmt(es) { return es.reduce((s, e) => s + e.amount, 0); }
+
+let billsFocus = null;   // month index shown in the "this month" panel; null = latest with bills
+function defaultBillsFocus() {
+  const cur = currentMonthIdx();
+  let best = -1;
+  state.entries.forEach(e => { const i = monthIdx(e.year, e.month); if (i <= cur && i > best) best = i; });
+  return best < 0 ? cur : best;
+}
+function shiftBillsMonth(d) {
+  billsFocus = Math.min(currentMonthIdx(), (billsFocus ?? defaultBillsFocus()) + d);
+  renderDashboard();
+}
+function markPaid(id) {
+  const e = state.entries.find(x => x.id === id);
+  if (!e) return;
+  e.paid = true; e.paidAt = todayISO(); e.updatedAt = Date.now();
+  saveState();
+  renderDashboard();
+  notifyUndo('Marked as paid', () => {
+    e.paid = false; e.paidAt = null; e.updatedAt = Date.now();
+    saveState(); renderDashboard();
+  });
+}
+
+function billRowHtml(e, withMonth) {
+  const u = getUtility(e.utility);
+  const bits = [];          // status first so it never gets cut off
+  let cls = 'bill', act = '';
+  if (e.dueDate && !e.paid) {
+    const d = daysUntil(e.dueDate);
+    if (d < 0) { cls += ' overdue'; bits.push(`overdue ${-d} day${d === -1 ? '' : 's'}`); }
+    else bits.push(d === 0 ? 'due today' : `due ${fmtDay(e.dueDate)}`);
+    act = `<button class="btn btn-ghost btn-sm" onclick="event.stopPropagation(); markPaid('${e.id}')">MARK PAID</button>`;
+  } else if (e.paid) {
+    bits.push(e.paidAt ? `paid ${fmtDay(e.paidAt)}` : 'paid');
+    act = '<span class="chip good">Paid</span>';
+  }
+  if (withMonth) bits.push(`${MONTHS[e.month - 1]} bill`);
+  if (e.provider) bits.push(escHtml(e.provider));
+  return `<li class="${cls}" onclick="openEditModal('${e.id}')" title="Open this entry">
+    <span class="ico">${u.icon}</span><span class="name">${u.label}</span>
+    <span class="amt">${formatEur(e.amount)}</span>
+    <span class="meta">${bits.join(' · ') || '&nbsp;'}</span><span class="act">${act}</span></li>`;
+}
+
+function expectedRowHtml(uid, y, m) {
+  const u = getUtility(uid);
+  const past = state.entries.filter(e => e.enabled && e.utility === uid && monthIdx(e.year, e.month) < monthIdx(y, m))
+    .sort((a, b) => monthIdx(b.year, b.month) - monthIdx(a.year, a.month));
+  const recent = past.slice(0, 3).map(e => e.amount);
+  const lo = Math.min(...recent), hi = Math.max(...recent);
+  const typical = !recent.length ? '' : (hi - lo < 0.5 ? `≈ ${formatEur(hi)}` : `≈ €${lo.toFixed(0)}–${hi.toFixed(0)}`);
+  const who = past.find(e => e.provider);
+  const meta = [who ? escHtml(who.provider) : '', 'not in yet'].filter(Boolean).join(' · ');
+  return `<li class="bill expected" onclick="openAddModalFor('${uid}', ${y}, ${m})" title="Add this bill">
+    <span class="ico">${u.icon}</span><span class="name">${u.label}</span><span class="amt">${typical}</span>
+    <span class="meta">${meta}</span>
+    <span class="act"><span class="chip pending">Expected</span></span></li>`;
+}
+
+function renderBillsRow(shown) {
+  const wrap = document.getElementById('billsRow');
+  const pool = activeUtilities().map(u => u.id).filter(id => shown.includes(id));
+  if (!pool.length || !state.entries.length) { wrap.innerHTML = ''; return; }
+  const cur = currentMonthIdx();
+  const fi = Math.min(billsFocus ?? defaultBillsFocus(), cur);
+  const { y, m } = idxToYM(fi);
+
+  // ── This month panel ──
+  const present = pool.filter(uid => entriesIn(uid, y, m).length);
+  const slots = pool.filter(uid => present.includes(uid) || isExpected(uid, y, m));
+  const monthEntries = present.flatMap(uid => entriesIn(uid, y, m));
+  const total = sumAmt(monthEntries);
+  const p = idxToYM(fi - 1);
+  const prevTotal = sumAmt(state.entries.filter(e => e.enabled && pool.includes(e.utility) && e.year === p.y && e.month === p.m));
+  const segs = slots.map(uid => {
+    const c = getUtility(uid).color;
+    return present.includes(uid) ? `<span class="bc-seg" style="background:${c}"></span>` : '<span class="bc-seg off"></span>';
+  }).join('');
+  const attention = state.entries.filter(e => e.enabled && !isArchived(e.utility) && e.dueDate && !e.paid &&
+      daysUntil(e.dueDate) <= 7 && !(e.year === y && e.month === m))
+    .sort((a, b) => a.dueDate.localeCompare(b.dueDate));
+  const rows = slots.flatMap(uid => present.includes(uid)
+    ? entriesIn(uid, y, m).map(e => billRowHtml(e, false))
+    : [expectedRowHtml(uid, y, m)]).join('');
+  const unpaid = state.entries.filter(e => e.enabled && !isArchived(e.utility) && e.dueDate && !e.paid);
+  const nextDue = unpaid.map(e => e.dueDate).filter(d => daysUntil(d) >= 0).sort()[0];
+  const unpaidNote = unpaid.length
+    ? `${unpaid.length} bill${unpaid.length === 1 ? '' : 's'}${nextDue ? ' · next due ' + fmtDay(nextDue) : ''}`
+    : 'nothing outstanding';
+
+  const monthPanel = `
+    <div class="bills-card">
+      <div class="bc-head">
+        <div class="bc-nav">
+          <button onclick="shiftBillsMonth(-1)" aria-label="Previous month">‹</button>
+          <span class="bc-label">${MONTHS[m - 1]} ${y}</span>
+          <button onclick="shiftBillsMonth(1)" aria-label="Next month" ${fi >= cur ? 'disabled' : ''}>›</button>
+        </div>
+        <span class="bc-count"><b>${present.length}</b> of ${slots.length} bills in</span>
+      </div>
+      <div class="bc-total"><span class="v">${formatEur(total)}</span>
+        <span class="bc-aside">${present.length < slots.length ? 'so far · ' : ''}${MONTHS[p.m - 1]} was ${formatEur(prevTotal)}</span></div>
+      <div class="bc-segs" style="grid-template-columns:repeat(${Math.max(slots.length, 1)},1fr)">${segs}</div>
+      ${attention.length ? `<span class="bc-label bc-group">Needs attention</span><ul class="bills">${attention.map(e => billRowHtml(e, true)).join('')}</ul>` : ''}
+      <span class="bc-label bc-group">${MONTHS[m - 1]} bills</span>
+      ${rows ? `<ul class="bills">${rows}</ul>` : '<div class="bc-empty">No bills logged for this month.</div>'}
+      <div class="bc-foot"><span class="bc-label">Unpaid</span>
+        <span class="v">${formatEur(sumAmt(unpaid))}</span><span class="bc-aside">${unpaidNote}</span></div>
+    </div>`;
+
+  // ── Bill matrix: last 6 months × utilities ──
+  const months = [...Array(6)].map((_, k) => idxToYM(fi - 5 + k));
+  const mxRows = pool.filter(uid => months.some(({ y, m }) => entriesIn(uid, y, m).length) || isExpected(uid, y, m));
+  const tint = (v, med) => {
+    const d = (v - med) / med, a = Math.abs(d);
+    return a < 0.04 || !isFinite(d) ? '' : (d > 0 ? 'hi' : 'lo') + (a < 0.15 ? 1 : a < 0.4 ? 2 : 3);
+  };
+  const body = mxRows.map(uid => {
+    const u = getUtility(uid);
+    const vals = months.map(({ y, m }) => { const es = entriesIn(uid, y, m); return es.length ? sumAmt(es) : null; });
+    const nums = vals.filter(v => v !== null).sort((a, b) => a - b);
+    const med = nums.length ? (nums.length % 2 ? nums[(nums.length - 1) / 2] : (nums[nums.length / 2 - 1] + nums[nums.length / 2]) / 2) : 0;
+    return `<tr><th scope="row">${u.icon} ${u.label}</th>` + months.map(({ y, m }, k) => {
+      const v = vals[k], i = monthIdx(y, m);
+      if (v !== null) {
+        const es = entriesIn(uid, y, m);
+        const t = nums.length >= 3 ? tint(v, med) : '';
+        return `<td><button class="mx-cell" ${t ? `data-t="${t}"` : ''} onclick="openEditModal('${es[0].id}')" title="${u.label} · ${MONTHS[m - 1]} ${y}${es.length > 1 ? ` (${es.length} entries)` : ''}">${v.toFixed(2)}</button></td>`;
+      }
+      if (isExpected(uid, y, m)) {
+        const recent = i >= cur - 1;
+        return `<td><button class="mx-cell ${recent ? 'pending' : 'missing'}" onclick="openAddModalFor('${uid}', ${y}, ${m})" title="${recent ? 'Expected — not in yet' : 'Missing — usually billed'}; click to add">${recent ? '…' : 'missing'}</button></td>`;
+      }
+      return `<td><button class="mx-cell none" onclick="openAddModalFor('${uid}', ${y}, ${m})" title="No bill · click to add">–</button></td>`;
+    }).join('') + '</tr>';
+  }).join('');
+  const foot = '<tr><th scope="row">Total</th>' + months.map(({ y, m }) => {
+    const got = mxRows.filter(uid => entriesIn(uid, y, m).length);
+    const exp = mxRows.filter(uid => !got.includes(uid) && isExpected(uid, y, m));
+    const sum = sumAmt(got.flatMap(uid => entriesIn(uid, y, m)));
+    return `<td>${sum.toFixed(2)}${exp.length ? `<span class="partial">partial<br>${got.length} of ${got.length + exp.length}</span>` : ''}</td>`;
+  }).join('') + '</tr>';
+  const archived = (state.archived || []).map(id => getUtility(id)).filter(Boolean);
+  const matrix = `
+    <div class="bills-card">
+      <div class="bc-head"><span class="bc-label">Last 6 months</span><span class="bc-aside">click a cell to open or add the bill</span></div>
+      <div class="mx-scroll"><table class="mx">
+        <thead><tr><th scope="col">Utility</th>${months.map(({ y, m }, k) => `<th scope="col" class="${k === 5 ? 'cur' : ''}">${MONTHS[m - 1]}${m === 1 || k === 0 ? ' ' + String(y).slice(2) : ''}</th>`).join('')}</tr></thead>
+        <tbody>${body}</tbody><tfoot>${foot}</tfoot>
+      </table></div>
+      <div class="mx-legend">
+        <span>Below usual <span class="mx-ramp"><i style="--t:var(--lo3)"></i><i style="--t:var(--lo2)"></i><i style="--t:var(--lo1)"></i></span></span>
+        <span><span class="mx-ramp"><i style="--t:var(--hi1)"></i><i style="--t:var(--hi2)"></i><i style="--t:var(--hi3)"></i></span> Above usual</span>
+        <span><span class="mx-key"></span> expected</span>
+        ${archived.length ? `<span>Archived (hidden): ${archived.map(u => u.icon + ' ' + u.label).join(', ')}</span>` : ''}
+      </div>
+    </div>`;
+
+  wrap.innerHTML = monthPanel + matrix;
 }
 
 function renderDashboard() {
@@ -1882,7 +2371,7 @@ function renderDashboard() {
     <div class="summary-card">
       <div class="sc-label">Previous Month (${MONTHS[prevM-1]} ${prevY})</div>
       <div class="sc-value amber">${formatEur(prevMonthTotal)}</div>
-      <div class="sc-sub">${prevMonthEntries.length} utilities logged</div>
+      <div class="sc-sub">${new Set(prevMonthEntries.map(e => e.utility)).size} utilities logged</div>
     </div>
     <div class="summary-card">
       <div class="sc-label">Last 3-Month Average</div>
@@ -1895,6 +2384,8 @@ function renderDashboard() {
       <div class="sc-sub">${ytdEntries.length} bills logged</div>
     </div>
   `;
+
+  renderBillsRow(shown);
 
   // Per-utility cards: show prev month vs 3-month avg
   const grid = document.getElementById('dashboardGrid');
@@ -1915,7 +2406,16 @@ function renderDashboard() {
     const uAvg = u3avgs.length ? u3avgs.reduce((s,v)=>s+v,0) / u3avgs.length : null;
 
     let trendHtml = '';
-    if (amount !== null && uAvg !== null) {
+    const lastYear = state.entries.filter(e => e.utility === u.id && e.year === prevY - 1 && e.month === prevM && e.enabled);
+    const lyAmount = lastYear.length ? lastYear.reduce((s,e)=>s+e.amount,0) : null;
+    if (amount !== null && lyAmount !== null) {
+      const diff = amount - lyAmount;
+      const pct = lyAmount ? Math.abs(diff / lyAmount * 100).toFixed(1) : 0;
+      const vs = `vs ${MONTHS[prevM-1]} ${prevY - 1}`;
+      if (diff > 0.01) trendHtml = `<div class="uc-trend trend-up">▲ €${Math.abs(diff).toFixed(2)} (${pct}%) ${vs}</div>`;
+      else if (diff < -0.01) trendHtml = `<div class="uc-trend trend-down">▼ €${Math.abs(diff).toFixed(2)} (${pct}%) ${vs}</div>`;
+      else trendHtml = `<div class="uc-trend trend-flat">— same as ${MONTHS[prevM-1]} ${prevY - 1}</div>`;
+    } else if (amount !== null && uAvg !== null) {
       const diff = amount - uAvg;
       const pct = uAvg ? ((diff / uAvg) * 100).toFixed(1) : 0;
       if (diff > 0.01) trendHtml = `<div class="uc-trend trend-up">▲ €${Math.abs(diff).toFixed(2)} (${pct}%) vs 3M avg</div>`;
@@ -1960,6 +2460,15 @@ function renderDashChart() {
   const monthEntries = months.map(({year, month}) =>
     state.entries.filter(e => e.enabled && shown.includes(e.utility) && e.year === year && e.month === month));
   const data = monthEntries.map(es => es.reduce((s,e) => s + e.amount, 0));
+  // A month is partial when bills that are normally there haven't been logged yet
+  const pool = shown.filter(id => !isArchived(id));
+  const partial = months.map(({year, month}) => {
+    const got = pool.filter(uid => entriesIn(uid, year, month).length).length;
+    const exp = pool.filter(uid => !entriesIn(uid, year, month).length && isExpected(uid, year, month)).length;
+    return exp ? `${got} of ${got + exp} bills in` : '';
+  });
+  const nowD = new Date();
+  const prevIdx = monthIdx(nowD.getFullYear(), nowD.getMonth() + 1) - 1;
   // Per-utility breakdown for each month's tooltip, e.g. "💧 Water: €20.00",
   // largest amount first.
   const breakdowns = monthEntries.map(es => {
@@ -1980,12 +2489,10 @@ function renderDashChart() {
       labels,
       datasets: [{
         data,
-        backgroundColor: months.map((m,i) => {
-          const now = new Date();
-          return (m.year === now.getFullYear() && m.month === now.getMonth()+1)
-            ? 'rgba(217,119,6,0.85)' : 'rgba(217,119,6,0.25)';
-        }),
-        borderColor: 'rgba(217,119,6,0.5)',
+        // highlight the month the "Previous month" card reports; partial months stay faint
+        backgroundColor: months.map((m, i) => partial[i] ? 'rgba(217,119,6,0.08)'
+          : monthIdx(m.year, m.month) === prevIdx ? 'rgba(217,119,6,0.85)' : 'rgba(217,119,6,0.25)'),
+        borderColor: months.map((m, i) => partial[i] ? 'rgba(217,119,6,0.9)' : 'rgba(217,119,6,0.5)'),
         borderWidth: 1,
         borderRadius: 3,
       }]
@@ -1999,8 +2506,10 @@ function renderDashChart() {
           callbacks: {
             label: ctx => `Total: €${ctx.parsed.y.toFixed(2)}`,
             afterBody: ctx => {
-              const lines = breakdowns[ctx[0].dataIndex];
-              return lines.length ? lines : ['No entries logged'];
+              const i = ctx[0].dataIndex;
+              const lines = breakdowns[i].length ? [...breakdowns[i]] : ['No entries logged'];
+              if (partial[i]) lines.push('', `Partial — ${partial[i]}`);
+              return lines;
             },
           },
         },
@@ -2015,10 +2524,11 @@ function renderDashChart() {
 function renderEntry() {
   // Sidebar
   const list = document.getElementById('utilityList');
-  list.innerHTML = UTILITIES.map(u => `
-    <button class="utility-btn ${u.id === currentUtility ? 'active' : ''}" onclick="selectUtility('${u.id}', this)">
+  const ordered = [...activeUtilities(), ...UTILITIES.filter(u => isArchived(u.id))];
+  list.innerHTML = ordered.map(u => `
+    <button class="utility-btn ${u.id === currentUtility ? 'active' : ''} ${isArchived(u.id) ? 'archived' : ''}" onclick="selectUtility('${u.id}', this)">
       <span class="dot" style="background:${u.color}"></span>
-      ${u.icon} ${u.label}
+      ${u.icon} ${u.label}${isArchived(u.id) ? '<span class="arch-tag">ARCHIVED</span>' : ''}
     </button>
   `).join('');
 
@@ -2071,6 +2581,10 @@ function toggleSort(field) {
 function setEntryFilter(key, value) {
   entryFilter[key] = value;
   renderEntryTable();
+  if (key === 'search') {
+    const el = document.getElementById('filterSearch');
+    if (el) { el.focus(); el.setSelectionRange(el.value.length, el.value.length); }
+  }
 }
 
 function clearEntryFilters() {
@@ -2144,7 +2658,7 @@ function renderEntryTable() {
     if (u.hasTariffs && e.tariffBreakdown) {
       const tb = state.tariffBands.map(b => {
         const val = e.tariffBreakdown[b.id];
-        return val != null ? `<span style="color:${b.color}">${b.name}: ${val} kWh</span>` : '';
+        return val != null ? `<span style="color:${escHtml(b.color)}">${escHtml(b.name)}: ${val} kWh</span>` : '';
       }).filter(Boolean).join(' · ');
       consumptionCell = `<td class="text-mono" style="color:var(--teal);font-size:10px">${tb || (e.consumption != null ? e.consumption + ' kWh total' : '—')}</td>`;
     }
@@ -2153,10 +2667,10 @@ function renderEntryTable() {
         <td><span class="month-badge">${getMonthLabel(e.year, e.month)}</span></td>
         <td class="text-mono" style="color:var(--amber);font-weight:600">${formatEur(e.amount)}</td>
         ${consumptionCell}
-        <td><span class="comment-text" title="${escHtml(e.comment||'')}">${e.comment || '—'}</span></td>
+        <td><span class="comment-text" title="${escHtml(e.comment||'')}">${e.comment ? escHtml(e.comment) : '—'}</span></td>
         <td>
           <label class="toggle">
-            <input type="checkbox" ${e.enabled ? 'checked' : ''} onchange="toggleEntry('${e.id}', this.checked)">
+            <input type="checkbox" ${e.enabled ? 'checked' : ''} onchange="toggleEntry('${e.id}', this.checked, this)">
             <span class="toggle-slider"></span>
           </label>
         </td>
@@ -2176,19 +2690,29 @@ function renderEntryTable() {
     </table>`;
 }
 
-function escHtml(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function escHtml(s) { return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 
-function toggleEntry(id, val) {
+function toggleEntry(id, val, el) {
   const e = state.entries.find(e => e.id === id);
-  if (e) { e.enabled = val; saveState(); }
+  if (!e) return;
+  e.enabled = val; e.updatedAt = Date.now();
+  saveState();
+  const tr = el && el.closest('tr');
+  if (tr) tr.classList.toggle('disabled', !val);
 }
 
 function deleteEntry(id) {
-  if (!confirm('Delete this entry?')) return;
-  state.entries = state.entries.filter(e => e.id !== id);
+  const removed = state.entries.find(e => e.id === id);
+  if (!removed) return;
+  markDeleted([id]);
   saveState();
-  renderEntryTable();
-  notify('Entry deleted', 'info');
+  refreshAll();
+  notifyUndo('Entry deleted', () => {
+    delete state.deleted[id];
+    state.entries.push({ ...removed, updatedAt: Date.now() });
+    saveState();
+    refreshAll();
+  });
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -2206,15 +2730,23 @@ function nextPeriodForUtility(utilityId) {
 }
 
 function openAddModal() {
+  openAddModalFor(currentUtility);
+}
+
+// Add-entry form for a given utility, optionally for a given period
+function openAddModalFor(utilityId, year, month) {
   editingId = null;
-  hideImportBanner();
-  document.getElementById('modalTitle').textContent = 'ADD ENTRY — ' + getUtility(currentUtility).label.toUpperCase();
-  const { year, month } = nextPeriodForUtility(currentUtility);
-  document.getElementById('fYear').value = year;
-  document.getElementById('fMonth').value = month;
+  currentUtility = utilityId;
+  fillUtilitySelect(utilityId);
+  document.getElementById('modalTitle').textContent = 'ADD ENTRY — ' + getUtility(utilityId).label.toUpperCase();
+  const next = nextPeriodForUtility(utilityId);
+  document.getElementById('fYear').value = year || next.year;
+  document.getElementById('fMonth').value = month || next.month;
   document.getElementById('fAmount').value = '';
   document.getElementById('fComment').value = '';
+  document.getElementById('fDue').value = '';
   document.getElementById('fEnabled').checked = true;
+  document.getElementById('fPaid').checked = false;
   buildSpecificFields();
   document.getElementById('modalOverlay').classList.remove('hidden');
   setTimeout(() => { const a = document.getElementById('fAmount'); if (a) a.focus(); }, 50);
@@ -2222,11 +2754,13 @@ function openAddModal() {
 
 function openEditModal(id) {
   editingId = id;
-  hideImportBanner();
   const e = state.entries.find(e => e.id === id);
   if (!e) return;
   document.getElementById('modalTitle').textContent = 'EDIT ENTRY — ' + getUtility(e.utility).label.toUpperCase();
   currentUtility = e.utility;
+  fillUtilitySelect(e.utility);
+  document.getElementById('fDue').value = e.dueDate || '';
+  document.getElementById('fPaid').checked = !!e.paid;
   document.getElementById('fYear').value = e.year;
   document.getElementById('fMonth').value = e.month;
   document.getElementById('fAmount').value = e.amount;
@@ -2238,10 +2772,21 @@ function openEditModal(id) {
 
 function closeModal() {
   document.getElementById('modalOverlay').classList.add('hidden');
-  hideImportBanner();
   editingId = null;
-  // Cancelling aborts any remaining queued import entries.
-  _importPending = []; _importTotal = 0; _importMeta = null;
+}
+
+function fillUtilitySelect(selected) {
+  document.getElementById('fUtility').innerHTML = UTILITIES.map(u =>
+    `<option value="${u.id}" ${u.id === selected ? 'selected' : ''}>${u.icon} ${u.label}${isArchived(u.id) ? ' (archived)' : ''}</option>`).join('');
+}
+
+// Switching category in the form rebuilds the category-specific fields
+function onModalUtilityChange() {
+  currentUtility = document.getElementById('fUtility').value;
+  const u = getUtility(currentUtility);
+  document.getElementById('modalTitle').textContent = (editingId ? 'EDIT ENTRY — ' : 'ADD ENTRY — ') + u.label.toUpperCase();
+  const e = editingId && state.entries.find(x => x.id === editingId);
+  buildSpecificFields(e && e.utility === currentUtility ? e : null);
 }
 
 function buildSpecificFields(existing = null) {
@@ -2269,7 +2814,7 @@ function buildSpecificFields(existing = null) {
           <div class="elec-tariff-entry">
             <div class="elec-tariff-header">
               <span class="tariff-color-dot" style="background:${b.color}"></span>
-              <span class="elec-tariff-label">${b.name}</span>
+              <span class="elec-tariff-label">${escHtml(b.name)}</span>
               ${b.ratePerKwh ? `<span class="text-mono text-dim text-sm">@ €${b.ratePerKwh}/kWh</span>` : ''}
             </div>
             <div class="form-group">
@@ -2285,6 +2830,7 @@ function buildSpecificFields(existing = null) {
           ${bands.some(b=>b.ratePerKwh) ? '· Calc. cost: <span id="elecCalcCost" style="color:var(--teal)">€0.00</span>' : ''}
         </div>
       </div>`;
+    if (existingTotal !== '') document.getElementById('fElecTotal').dataset.manuallySet = '1';
     updateElecTotal();
   } else if (u.hasConsumption) {
     const val = existing && existing.consumption != null ? existing.consumption : '';
@@ -2328,6 +2874,8 @@ function saveEntry() {
   const amount = parseFloat(document.getElementById('fAmount').value);
   const comment = document.getElementById('fComment').value.trim();
   const enabled = document.getElementById('fEnabled').checked;
+  const dueDate = document.getElementById('fDue').value || null;
+  const paid = document.getElementById('fPaid').checked;
 
   if (!year || !month || isNaN(amount) || amount < 0) {
     notify('Please fill in year, month, and amount', 'info');
@@ -2356,28 +2904,27 @@ function saveEntry() {
     consumption = isNaN(cv) ? null : cv;
   }
 
+  const now = Date.now();
+  const wasEditing = !!editingId;
   if (editingId) {
     const idx = state.entries.findIndex(e => e.id === editingId);
     if (idx >= 0) {
-      state.entries[idx] = { ...state.entries[idx], year, month, amount, consumption, tariffBreakdown, comment, enabled };
+      const prev = state.entries[idx];
+      state.entries[idx] = { ...prev, utility: currentUtility, year, month, amount, consumption, tariffBreakdown,
+        comment, enabled, dueDate, paid, paidAt: paid ? (prev.paidAt || todayISO()) : null, updatedAt: now };
     }
   } else {
     state.entries.push({
-      id: Date.now().toString(),
-      utility: currentUtility,
-      year, month, amount, consumption, tariffBreakdown, comment, enabled
+      id: newId(), utility: currentUtility,
+      year, month, amount, consumption, tariffBreakdown, comment, enabled,
+      dueDate, paid, paidAt: paid ? todayISO() : null, updatedAt: now,
     });
   }
 
   saveState();
-  renderEntryTable();
-  if (!editingId && _importPending && _importPending.length) {
-    notify('Saved — next entry…', 'success');
-    openNextImportEntry();
-  } else {
-    closeModal();
-    notify(editingId ? 'Entry updated' : 'Entry saved', 'success');
-  }
+  closeModal();
+  refreshAll();
+  notify(wasEditing ? 'Entry updated' : 'Entry saved', 'success');
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -2419,11 +2966,11 @@ function chartTooltip() {
   return {
     backgroundColor: c.tipBg, borderColor: c.tipBorder, borderWidth: 1,
     titleColor: c.tipTitle, bodyColor: c.tipBody,
-    titleFont: { family: 'IBM Plex Mono', size: 10 }, bodyFont: { family: 'IBM Plex Mono', size: 12 },
+    titleFont: { family: CHART_FONT, size: 10 }, bodyFont: { family: CHART_FONT, size: 12 },
   };
 }
 function chartLegend() {
-  return { display: true, labels: { color: themeColors().legend, font: { family: 'IBM Plex Mono', size: 9 }, boxWidth: 10 } };
+  return { display: true, labels: { color: themeColors().legend, font: { family: CHART_FONT, size: 9 }, boxWidth: 10 } };
 }
 function chartOptions({ prefix = '', suffix = '', title = '' } = {}) {
   const c = themeColors();
@@ -2435,8 +2982,8 @@ function chartOptions({ prefix = '', suffix = '', title = '' } = {}) {
       tooltip: { ...chartTooltip(), callbacks: { label: ctx => prefix + ctx.parsed.y.toFixed(2) + suffix } }
     },
     scales: {
-      x: { grid: { color: c.grid }, ticks: { color: c.tick, font: { family: 'IBM Plex Mono', size: 9 } } },
-      y: { grid: { color: c.grid }, ticks: { color: c.tick, font: { family: 'IBM Plex Mono', size: 9 }, callback: v => prefix + v + suffix } }
+      x: { grid: { color: c.grid }, ticks: { color: c.tick, font: { family: CHART_FONT, size: 9 } } },
+      y: { grid: { color: c.grid }, ticks: { color: c.tick, font: { family: CHART_FONT, size: 9 }, callback: v => prefix + v + suffix } }
     }
   };
 }
@@ -2561,7 +3108,7 @@ function renderCharts() {
     options: {
       responsive: true, maintainAspectRatio: false,
       plugins: {
-        legend: { display: true, position: 'bottom', labels: { color: tc.legend, font: { family: 'IBM Plex Mono', size: 9 }, boxWidth: 10, padding: 12 } },
+        legend: { display: true, position: 'bottom', labels: { color: tc.legend, font: { family: CHART_FONT, size: 9 }, boxWidth: 10, padding: 12 } },
         tooltip: { ...chartTooltip(), callbacks: { label: ctx => ctx.label + ': €' + ctx.parsed.toFixed(2) } }
       }
     }
@@ -2623,7 +3170,7 @@ function renderCharts() {
           { label: 'Cost (€)', type: 'line', data: months.map(({year,month}) => { const es=state.entries.filter(e=>e.enabled&&e.utility==='water'&&e.year===year&&e.month===month); const v=es.reduce((s,e)=>s+e.amount,0); return es.length?v:null; }), borderColor: '#d97706', borderWidth: 2, pointRadius: 3, pointBackgroundColor: '#d97706', tension: 0.3, yAxisID: 'y2' }
         ]
       },
-      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: chartLegend(), tooltip: chartTooltip() }, scales: { x: { grid: { color: tc.grid }, ticks: { color: tc.tick, font: { family: 'IBM Plex Mono', size: 9 } } }, y: { grid: { color: tc.grid }, ticks: { color: '#2563eb', font: { family: 'IBM Plex Mono', size: 9 } }, position: 'left' }, y2: { grid: { display: false }, ticks: { color: '#d97706', font: { family: 'IBM Plex Mono', size: 9 }, callback: v=>'€'+v }, position: 'right' } } }
+      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: chartLegend(), tooltip: chartTooltip() }, scales: { x: { grid: { color: tc.grid }, ticks: { color: tc.tick, font: { family: CHART_FONT, size: 9 } } }, y: { grid: { color: tc.grid }, ticks: { color: '#2563eb', font: { family: CHART_FONT, size: 9 } }, position: 'left' }, y2: { grid: { display: false }, ticks: { color: '#d97706', font: { family: CHART_FONT, size: 9 }, callback: v=>'€'+v }, position: 'right' } } }
     });
   } else {
     if (waterWrap) waterWrap.style.display = 'none';
@@ -2666,7 +3213,7 @@ function renderCharts() {
     charts.electric = new Chart(ctx5, {
       type: 'bar',
       data: { labels, datasets: elecDatasets },
-      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: chartLegend(), tooltip: chartTooltip() }, scales: { x: { grid: { color: tc.grid }, ticks: { color: tc.tick, font: { family: 'IBM Plex Mono', size: 9 } } }, y: { grid: { color: tc.grid }, ticks: { color: '#d97706', font: { family: 'IBM Plex Mono', size: 9 } }, stacked: true }, y2: { grid: { display: false }, ticks: { color: '#0d9488', font: { family: 'IBM Plex Mono', size: 9 }, callback: v=>'€'+v }, position: 'right' } } }
+      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: chartLegend(), tooltip: chartTooltip() }, scales: { x: { grid: { color: tc.grid }, ticks: { color: tc.tick, font: { family: CHART_FONT, size: 9 } } }, y: { grid: { color: tc.grid }, ticks: { color: '#d97706', font: { family: CHART_FONT, size: 9 } }, stacked: true }, y2: { grid: { display: false }, ticks: { color: '#0d9488', font: { family: CHART_FONT, size: 9 }, callback: v=>'€'+v }, position: 'right' } } }
     });
   } else {
     if (elecWrap) elecWrap.style.display = 'none';
@@ -2681,8 +3228,15 @@ function destroyChart(key) { if (charts[key]) { charts[key].destroy(); delete ch
 // ═══════════════════════════════════════════════════════════
 // Per-utility forecast enabled state (persisted in state)
 function getForecastEnabled(utilityId) {
+  if (isArchived(utilityId) || isStale(utilityId)) return false;
   if (!state.forecastEnabled) return true;
   return state.forecastEnabled[utilityId] !== false;
+}
+// No bill in the last 4 months → stops counting towards the forecast
+function isStale(utilityId) {
+  const last = state.entries.filter(e => e.utility === utilityId && e.enabled)
+    .reduce((mx, e) => Math.max(mx, monthIdx(e.year, e.month)), -1);
+  return last >= 0 && currentMonthIdx() - last > 4;
 }
 function setForecastEnabled(utilityId, val) {
   if (!state.forecastEnabled) state.forecastEnabled = {};
@@ -2700,7 +3254,7 @@ function renderForecast() {
 
   // Utility toggle controls
   const controlsEl = document.getElementById('forecastControls');
-  controlsEl.innerHTML = UTILITIES.map(u => {
+  controlsEl.innerHTML = activeUtilities().filter(u => !isStale(u.id)).map(u => {
     const enabled = getForecastEnabled(u.id);
     return `<div class="fc-toggle-row">
       <label class="toggle" style="width:28px;height:16px">
@@ -2713,8 +3267,9 @@ function renderForecast() {
 
   const grid = document.getElementById('forecastGrid');
   let totalForecast = 0;
-  grid.innerHTML = UTILITIES.map(u => {
+  grid.innerHTML = activeUtilities().map(u => {
     const isEnabled = getForecastEnabled(u.id);
+    const stale = isStale(u.id);
     const entries = getEntries(u.id, true);
     if (!entries.length) return `
       <div class="forecast-card ${!isEnabled ? 'inactive' : ''}">
@@ -2742,7 +3297,7 @@ function renderForecast() {
 
     return `
       <div class="forecast-card ${!isEnabled ? 'inactive' : ''}">
-        <div class="fc-utility">${u.icon} ${u.label}${!isEnabled ? '<span class="fc-inactive-badge">INACTIVE</span>' : ''}</div>
+        <div class="fc-utility">${u.icon} ${u.label}${stale ? '<span class="fc-inactive-badge">NO RECENT BILLS</span>' : !isEnabled ? '<span class="fc-inactive-badge">INACTIVE</span>' : ''}</div>
         <div class="fc-amount">${formatEur(avg)}</div>
         <div class="fc-basis">3-month rolling avg${!isEnabled ? ' · excluded from total' : ''}</div>
         <div class="fc-3mavg" style="margin-top:6px;border-top:1px solid var(--border);padding-top:6px">
@@ -2805,24 +3360,34 @@ function renderAnnualSummary() {
   // Year summary cards
   const yearTotals = years.map(year => {
     const entries = allEntries.filter(e => e.year === year);
-    return { year, total: entries.reduce((s,e)=>s+e.amount,0), count: entries.length };
+    const months = [...new Set(entries.map(e => e.month))].sort((a, b) => a - b);
+    return { year, total: entries.reduce((s,e)=>s+e.amount,0), count: entries.length, months };
   });
 
   document.getElementById('annualYearCards').innerHTML = yearTotals.map((yt, i) => {
     const prev = yearTotals[i+1];
     let yoyHtml = '';
     if (prev) {
-      const diff = yt.total - prev.total;
-      const pct = ((diff / prev.total) * 100).toFixed(1);
-      if (diff > 0.01) yoyHtml = `<div class="ayc-yoy trend-up">▲ ${formatEur(Math.abs(diff))} (+${pct}%) vs ${prev.year}</div>`;
-      else if (diff < -0.01) yoyHtml = `<div class="ayc-yoy trend-down">▼ ${formatEur(Math.abs(diff))} (${pct}%) vs ${prev.year}</div>`;
-      else yoyHtml = `<div class="ayc-yoy trend-flat">— same as ${prev.year}</div>`;
+      // Compare only the months both years have, so a part-year isn't read as a saving/rise
+      const common = yt.months.filter(m => prev.months.includes(m));
+      const sumIn = (year, ms) => allEntries.filter(e => e.year === year && ms.includes(e.month)).reduce((s,e)=>s+e.amount,0);
+      if (common.length) {
+        const cur = sumIn(yt.year, common), base = sumIn(prev.year, common);
+        const diff = cur - base, pct = base ? Math.abs(diff / base * 100).toFixed(1) : 0;
+        const span = common.length === 12 ? `vs ${prev.year}`
+          : `vs ${MONTHS[common[0]-1]}–${MONTHS[common[common.length-1]-1]} ${prev.year}`;
+        if (diff > 0.01) yoyHtml = `<div class="ayc-yoy trend-up">▲ ${formatEur(Math.abs(diff))} (+${pct}%) ${span}</div>`;
+        else if (diff < -0.01) yoyHtml = `<div class="ayc-yoy trend-down">▼ ${formatEur(Math.abs(diff))} (−${pct}%) ${span}</div>`;
+        else yoyHtml = `<div class="ayc-yoy trend-flat">— same as ${span.replace('vs ', '')}</div>`;
+      } else {
+        yoyHtml = `<div class="ayc-yoy trend-flat">No overlapping months with ${prev.year}</div>`;
+      }
     }
     return `
       <div class="annual-year-card">
         <div class="ayc-year">${yt.year}</div>
         <div class="ayc-total">${formatEur(yt.total)}</div>
-        <div class="ayc-sub">${yt.count} bills · avg ${formatEur(yt.total/12)}/mo</div>
+        <div class="ayc-sub">${yt.count} bills · ${yt.months.length} month${yt.months.length === 1 ? '' : 's'} · avg ${formatEur(yt.total / yt.months.length)}/mo</div>
         ${yoyHtml}
       </div>`;
   }).join('');
@@ -2854,8 +3419,8 @@ function renderAnnualSummary() {
         tooltip: { ...chartTooltip(), callbacks: { label: ctx => ` ${ctx.dataset.label}: €${ctx.parsed.y.toFixed(2)}` } }
       },
       scales: {
-        x: { stacked: true, grid: { color: themeColors().grid }, ticks: { color: themeColors().tick, font: { family: 'IBM Plex Mono', size: 10 } } },
-        y: { stacked: true, grid: { color: themeColors().grid }, ticks: { color: themeColors().tick, font: { family: 'IBM Plex Mono', size: 10 }, callback: v => '€' + v } }
+        x: { stacked: true, grid: { color: themeColors().grid }, ticks: { color: themeColors().tick, font: { family: CHART_FONT, size: 10 } } },
+        y: { stacked: true, grid: { color: themeColors().grid }, ticks: { color: themeColors().tick, font: { family: CHART_FONT, size: 10 }, callback: v => '€' + v } }
       }
     }
   });
@@ -2900,6 +3465,14 @@ function renderAnnualSummary() {
 // ═══════════════════════════════════════════════════════════
 function renderSettings() {
   renderDropboxSettings();
+  document.getElementById('archiveConfig').innerHTML = UTILITIES.map(u => `
+    <div class="fc-toggle-row">
+      <label class="toggle" style="width:28px;height:16px">
+        <input type="checkbox" ${isArchived(u.id) ? 'checked' : ''} onchange="setArchived('${u.id}', this.checked)">
+        <span class="toggle-slider"></span>
+      </label>
+      <span style="color:${u.color}">${u.icon}</span> ${u.label}
+    </div>`).join('');
   const cfg = document.getElementById('tariffConfig');
   cfg.innerHTML = state.tariffBands.map((b, i) => `
     <div class="tariff-config-row">
@@ -2919,6 +3492,15 @@ function renderSettings() {
       <button class="btn btn-danger btn-sm" style="margin-top:18px" onclick="removeBand('${b.id}')">REMOVE</button>
     </div>
   `).join('');
+}
+
+function setArchived(id, on) {
+  const cur = new Set(state.archived || []);
+  on ? cur.add(id) : cur.delete(id);
+  state.archived = [...cur];
+  saveState();
+  renderEntry();
+  notify(on ? `${getUtility(id).label} archived` : `${getUtility(id).label} restored`, 'success');
 }
 
 function updateBand(id, field, value) {
@@ -2950,13 +3532,27 @@ function notify(msg, type = 'success') {
   clearTimeout(notifTimer);
   notifTimer = setTimeout(() => el.classList.remove('show'), 2500);
 }
+function notifyUndo(msg, onUndo) {
+  const el = document.getElementById('notification');
+  el.textContent = msg + ' ';
+  const b = document.createElement('button');
+  b.className = 'notif-undo'; b.type = 'button'; b.textContent = 'UNDO';
+  b.onclick = () => { el.classList.remove('show'); onUndo(); };
+  el.append(b);
+  el.className = 'notification info show';
+  clearTimeout(notifTimer);
+  notifTimer = setTimeout(() => el.classList.remove('show'), 6000);
+}
 
 // ═══════════════════════════════════════════════════════════
 // REFRESH ALL
 // ═══════════════════════════════════════════════════════════
+// Re-render whatever page is showing (plus the entry list, which is cheap)
 function refreshAll() {
-  renderDashboard();
   renderEntry();
+  const active = document.querySelector('.page.active');
+  const id = active ? active.id.replace('page-', '') : 'dashboard';
+  if (id === 'settings') renderSettings(); else rerenderActiveCharts();
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -2995,6 +3591,10 @@ function toggleTheme() {
 // ═══════════════════════════════════════════════════════════
 // Async init — load local cache first (instant render), then reconcile with Dropbox
 (async () => {
+  if (typeof Chart === 'undefined') {
+    window.Chart = function () { return { destroy() {} }; };
+    setTimeout(() => notify('Charts unavailable — the chart library couldn’t load (offline?)', 'info'), 600);
+  }
   if (!checkStorageAvailable()) {
     notify('⚠ IndexedDB unavailable — local cache disabled', 'info');
   }
@@ -3044,9 +3644,12 @@ document.addEventListener('keydown', e => {
   }
 
   const modalOpen = !document.getElementById('modalOverlay').classList.contains('hidden');
+  if (e.key === 'Escape' && !document.getElementById('inboxOverlay').classList.contains('hidden') && !modalOpen) {
+    closeInbox(); return;
+  }
 
   // Enter — save entry (only when modal is open, and not in textarea)
-  if (e.key === 'Enter' && modalOpen && document.activeElement.tagName !== 'TEXTAREA') {
+  if (e.key === 'Enter' && modalOpen && !['TEXTAREA','BUTTON','SELECT'].includes(document.activeElement.tagName)) {
     e.preventDefault();
     saveEntry();
     return;
