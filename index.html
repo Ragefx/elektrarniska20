@@ -554,6 +554,43 @@ button.ck:hover:not(:disabled) { border-color: #19a877; background: var(--good-b
 body.dragging .drop-hint { display: grid; }
 .drop-hint span { font-size: 18px; font-weight: 800; color: var(--text-0); background: var(--bg-1); border: 2px dashed var(--amber); border-radius: var(--radius-lg); padding: 30px 44px; }
 
+/* ── ELECTRICITY YEARLY STATEMENT ── */
+#elecYear { margin-top: 18px; }
+#elecYear h2 { display: flex; align-items: center; gap: 8px; }
+#elecYear h3 { font-size: 14px; font-weight: 800; letter-spacing: -0.01em; margin: 22px 0 8px; }
+#elecYear h3 span { font-weight: 600; color: var(--text-2); font-size: 12.5px; margin-left: 6px; }
+.stat-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 12px; margin-top: 16px; }
+.stat { background: var(--bg-2); border-radius: 18px; padding: 16px 18px; min-width: 0; }
+.stat span { display: block; font-size: 12.5px; font-weight: 600; color: var(--text-1); }
+.stat b { display: block; font-size: 24px; font-weight: 800; letter-spacing: -0.04em; margin: 4px 0 2px; font-variant-numeric: tabular-nums; }
+.stat small { display: block; font-size: 12px; color: var(--text-2); }
+.stmt-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 32px; }
+.stmt-note { font-size: 12.5px; color: var(--text-2); margin-top: 8px; max-width: 62ch; }
+.flow { display: grid; grid-template-columns: 52px minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 5px 0; font-size: 13px; color: var(--text-1); }
+.flow b { color: var(--text-0); font-variant-numeric: tabular-nums; min-width: 86px; text-align: right; }
+.flow-bar { display: flex; gap: 2px; }
+.flow-bar i { height: 14px; border-radius: 4px; min-width: 3px; }
+.stmt-scroll { overflow-x: auto; }
+.stmt-table { width: 100%; border-collapse: collapse; font-size: 13.5px; font-variant-numeric: tabular-nums; }
+.stmt-table th { font-size: 11px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: var(--text-2); text-align: left; padding: 6px 10px 6px 0; border-bottom: 1px solid var(--border); white-space: nowrap; }
+.stmt-table td { padding: 8px 10px 8px 0; border-bottom: 1px solid var(--border); }
+.stmt-table .num { text-align: right; padding-right: 0; padding-left: 10px; white-space: nowrap; }
+.stmt-table .dim { color: var(--text-2); }
+.stmt-table tfoot td { border-bottom: 0; font-weight: 800; }
+.stmt-table .barcell { width: 40%; }
+.stmt-table .barcell i { display: block; height: 10px; border-radius: 4px; min-width: 2px; }
+.blk { display: inline-grid; place-items: center; width: 26px; height: 24px; border-radius: 8px; font-weight: 700; font-size: 12.5px; }
+.blk[data-b="1"] { background: color-mix(in srgb, var(--amber) 42%, var(--bg-1)); }
+.blk[data-b="2"] { background: color-mix(in srgb, var(--amber) 30%, var(--bg-1)); }
+.blk[data-b="3"] { background: color-mix(in srgb, var(--amber) 19%, var(--bg-1)); }
+.blk[data-b="4"] { background: color-mix(in srgb, var(--amber) 10%, var(--bg-1)); }
+.blk[data-b="5"] { background: var(--bg-2); color: var(--text-2); }
+.sched td:first-child { white-space: nowrap; }
+.stmt-details { margin-top: 20px; }
+.stmt-details summary { cursor: pointer; font-weight: 700; font-size: 13.5px; color: var(--text-1); }
+.stmt-details .stmt-scroll { margin-top: 10px; }
+@media (max-width: 1100px) { .stmt-grid { grid-template-columns: minmax(0, 1fr); } }
+
 /* Smooth theme switch */
 body, .card, .tile, .summary-card, .chart-wrapper, .forecast-card, .annual-year-card,
 .side, .modal, .form-input, .form-select, .form-textarea, .settings-section {
@@ -770,6 +807,7 @@ body, .card, .tile, .summary-card, .chart-wrapper, .forecast-card, .annual-year-
       <div class="chart-container" style="height:300px"><canvas id="annualChart"></canvas></div>
     </div>
     <div id="annualBreakdownTable"></div>
+    <div id="elecYear"></div>
   </div>
 
   <!-- ══════════════════════════════ SETTINGS ══════════════════════════════ -->
@@ -990,15 +1028,19 @@ function mergeStates(local, remote) {
     if (!cur || (e.updatedAt || 0) >= (cur.updatedAt || 0)) byId.set(e.id, e);
   }
   const entries = [...byId.values()].filter(e => !(deleted[e.id] && deleted[e.id] >= (e.updatedAt || 0)));
+  const elecStatements = { ...(remote.elecStatements || {}) };
+  for (const [y, v] of Object.entries(local.elecStatements || {})) {
+    if (!elecStatements[y] || (v.updatedAt || 0) >= (elecStatements[y].updatedAt || 0)) elecStatements[y] = v;
+  }
   const newer = (local._lastModified || 0) >= (remote._lastModified || 0) ? local : remote;
   const settings = {};
   SETTING_KEYS.forEach(k => { if (newer[k] !== undefined) settings[k] = newer[k]; });
-  return { ...remote, ...local, ...settings, entries, deleted,
+  return { ...remote, ...local, ...settings, entries, deleted, elecStatements,
            _lastModified: Math.max(local._lastModified || 0, remote._lastModified || 0) };
 }
 function stateFingerprint(st) {
   const entries = [...(st.entries || [])].sort((a, b) => String(a.id).localeCompare(String(b.id)));
-  const out = { entries, deleted: st.deleted || {} };
+  const out = { entries, deleted: st.deleted || {}, elecStatements: st.elecStatements || {} };
   SETTING_KEYS.forEach(k => { out[k] = st[k] ?? null; });
   return JSON.stringify(out);
 }
@@ -1768,6 +1810,8 @@ async function openInbox(files) {
       const text = await extractPdfText(pdfs[k]);
       if (!text.replace(/\s/g, '').length) throw new Error('scan');
       items = parsedToItems(parseBill(text), pdfs[k].name);
+      const stmt = parseElecStatement(text);
+      if (stmt && items[0]) items[0].statement = stmt;
     } catch (err) {
       items = [{ key: newId(), file: pdfs[k].name, status: 'error',
         error: err.message === 'scan' ? 'No text · scanned image' : 'Couldn’t read this PDF' }];
@@ -1793,6 +1837,7 @@ function inboxRowHtml(it) {
   const chip = it.status === 'ready' ? `<span class="chip good">Ready${it.part ? ' · split ' + it.part : ''}</span>`
     : it.status === 'duplicate' ? `<span class="chip muted">${escHtml(it.dupNote)}</span>`
     : '<span class="chip bad">Check fields</span>';
+  const stmtChip = it.statement ? ` <span class="chip good" title="The yearly settlement in this bill is saved under Annual">+ ${it.statement.year} statement</span>` : '';
   return `<div class="ib-row ${it.include ? '' : 'skip'}" data-key="${it.key}">
     <span class="chk"><input type="checkbox" data-f="include" ${it.include ? 'checked' : ''} aria-label="Include this bill"></span>
     ${file}
@@ -1801,7 +1846,7 @@ function inboxRowHtml(it) {
     <span class="per"><input type="month" class="form-input" data-f="period" value="${period}" aria-label="Billing period"></span>
     <span class="amt num"><input type="number" class="form-input" data-f="amount" step="0.01" min="0" value="${it.amount != null ? it.amount.toFixed(2) : ''}" aria-label="Amount in euro"></span>
     <span class="due"><input type="date" class="form-input" data-f="dueDate" value="${it.dueDate || ''}" aria-label="Due date"></span>
-    <span class="st">${chip}</span>
+    <span class="st">${chip}${stmtChip}</span>
   </div>`;
 }
 
@@ -1820,11 +1865,13 @@ function updateInboxSummary() {
   const parts = [`${ticked} ${ticked === 1 ? 'entry' : 'entries'} ready`];
   if (dups) parts.push(`${dups} already saved`);
   if (bad) parts.push(`${bad} need${bad === 1 ? 's' : ''} attention`);
+  const stmts = inboxItems.filter(x => x.statement).length;
+  if (stmts) parts.push(`${stmts} yearly electricity statement${stmts === 1 ? '' : 's'}`);
   if (reading) parts.push(`reading ${reading}…`);
   document.getElementById('inboxSummary').textContent = parts.join(' · ');
   const btn = document.getElementById('inboxSave');
-  btn.textContent = ticked ? `Save ${ticked} ${ticked === 1 ? 'entry' : 'entries'}` : 'Nothing to save';
-  btn.disabled = !ticked;
+  btn.textContent = ticked ? `Save ${ticked} ${ticked === 1 ? 'entry' : 'entries'}${stmts ? ' + statement' : ''}` : stmts ? 'Save statement' : 'Nothing to save';
+  btn.disabled = !ticked && !stmts;
 }
 
 function onInboxChange(ev) {
@@ -1863,8 +1910,14 @@ function billComment(it) {
 
 function saveInbox() {
   const toSave = inboxItems.filter(x => x.include && inboxValid(x));
-  if (!toSave.length) return;
-  const now = Date.now(), monthAgo = new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10);
+  const stmts = inboxItems.filter(x => x.statement).map(x => x.statement);
+  if (!toSave.length && !stmts.length) return;
+  const now = Date.now();
+  if (stmts.length) {
+    state.elecStatements = state.elecStatements || {};
+    stmts.forEach(st => { state.elecStatements[st.year] = { ...st, updatedAt: now }; });
+  }
+  const monthAgo = new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10);
   toSave.forEach(it => {
     // Bills that fell due over a month ago (backfilled history) are assumed paid
     const paid = !!(it.dueDate && it.dueDate < monthAgo);
@@ -1878,7 +1931,9 @@ function saveInbox() {
   saveState();
   closeInbox();
   refreshAll();
-  notify(`Saved ${toSave.length} ${toSave.length === 1 ? 'entry' : 'entries'}`, 'success');
+  const saved = [toSave.length ? `${toSave.length} ${toSave.length === 1 ? 'entry' : 'entries'}` : '',
+    stmts.length ? `the ${stmts.map(st => st.year).join(', ')} electricity statement (see Annual)` : ''].filter(Boolean).join(' and ');
+  notify(`Saved ${saved}`, 'success');
 }
 
 function closeInbox() {
@@ -3209,9 +3264,10 @@ function renderForecast() {
 // ANNUAL SUMMARY
 // ═══════════════════════════════════════════════════════════
 function renderAnnualSummary() {
+  renderElecStatement();
   const allEntries = state.entries.filter(e => e.enabled);
   if (!allEntries.length) {
-    document.getElementById('annualYearCards').innerHTML = '<div class="empty-state"><div class="es-icon">📅</div><div class="es-text">No data yet.</div></div>';
+    document.getElementById('annualYearCards').innerHTML = '<div class="empty-state"><div class="es-text">No data yet.</div></div>';
     document.getElementById('annualBreakdownTable').innerHTML = '';
     return;
   }
@@ -3319,6 +3375,213 @@ function renderAnnualSummary() {
         <tfoot><tr style="background:var(--bg-2)"><td style="font-family:var(--font-mono);font-size:12.5px;color:var(--text-2)">TOTAL</td>${grandRow}<td style="font-weight:600;color:var(--teal)">${formatEur(grandTotal)}</td></tr></tfoot>
       </table>
     </div>`;
+}
+
+// ═══════════════════════════════════════════════════════════
+// ELECTRICITY — YEARLY STATEMENT (net-metering settlement)
+// The supplier's December bill carries the settlement for the whole year:
+// energy taken from / sent to the grid, every cost line (incl. agreed power
+// per time block) and the monthly instalments already billed.
+// ═══════════════════════════════════════════════════════════
+function siNum(s) {
+  s = String(s).trim().replace(/\s/g, '');
+  if (s.includes(',')) return parseFloat(s.replace(/\./g, '').replace(',', '.'));
+  if (/^-?\d{1,3}(\.\d{3})+$/.test(s)) return parseFloat(s.replace(/\./g, ''));   // 6.753 kWh
+  return parseFloat(s);
+}
+function siDate(s) {
+  const m = String(s).match(/(\d{1,2})\.\s*(\d{1,2})\.\s*(\d{4})/);
+  return m ? `${m[3]}-${m[2].padStart(2, '0')}-${m[1].padStart(2, '0')}` : null;
+}
+function stmtGroupKey(label) {
+  const l = label.toLowerCase();
+  return /električna energija/.test(l) ? 'energy' : /omrežnin/.test(l) ? 'network' : /prispevk/.test(l) ? 'contributions'
+    : /trošarin/.test(l) ? 'excise' : /nadomestil/.test(l) ? 'fee' : /ugodnost|storit|popust/.test(l) ? 'discounts' : 'other';
+}
+function parseElecStatement(text) {
+  const t = (text || '').replace(/ /g, ' ');
+  if (!/OBRAČUN\s+DEJANSKE\s+PORABE/i.test(t) || !/ZARAČUNANI\s+PAVŠALI/i.test(t)) return null;
+  const lines = t.split('\n').map(l => l.replace(/\s+/g, ' ').trim()).filter(Boolean);
+  const flat = lines.join(' ');
+  const D = '(\\d{1,2}\\. ?\\d{1,2}\\. ?\\d{4})', N = '(-?[\\d.]+(?:,\\d+)?)';
+  const reMeter = new RegExp(`${D} ?[-–] ?${D} (Oddana energija|Energija) (VT|MT|ET) ${N} ${N} ${N}$`);
+  const reLine  = new RegExp(`^(.+?) ${D} ?[-–] ?${D} ${N} (kWh|kW|kos) ${N} ${N} ${N}$`);
+  const reGroup = new RegExp(`^Skupaj (.+?)(?: \\.)+ ${N}$`);
+  const reInst  = new RegExp(`^([A-ZČŠŽ]+ \\d{4}) ${D} ?[-–] ?${D} ([A-Z]{2}\\d{5,}) ${N}$`);
+  const reTotal = new RegExp(`^Skupaj ${N}$`);
+
+  const st = { taken: {}, fed: {}, lines: [], groups: [], instalments: [], total: null, instalmentsTotal: null };
+  let pending = [], from = null, to = null, m;
+  for (const l of lines) {
+    if ((m = l.match(reMeter))) {
+      const bucket = m[3] === 'Energija' ? st.taken : st.fed;
+      bucket[m[4]] = (bucket[m[4]] || 0) + siNum(m[7]);
+      const a = siDate(m[1]), b = siDate(m[2]);
+      if (!from || a < from) from = a;
+      if (!to || b > to) to = b;
+    } else if ((m = l.match(reInst))) {
+      st.instalments.push({ label: m[1], from: siDate(m[2]), to: siDate(m[3]), invoice: m[4], amount: siNum(m[5]) });
+    } else if ((m = l.match(reLine))) {
+      const blk = m[1].match(/časovni blok (\d)/i);
+      pending.push({ name: m[1].trim(), from: siDate(m[2]), to: siDate(m[3]), qty: siNum(m[4]), unit: m[5],
+        price: siNum(m[6]), amount: siNum(m[8]), block: blk ? +blk[1] : null });
+    } else if ((m = l.match(reGroup))) {
+      const key = stmtGroupKey(m[1]);
+      pending.forEach(x => { x.group = key; });
+      st.lines.push(...pending); pending = [];
+      st.groups.push({ key, label: m[1].trim(), total: siNum(m[2]) });
+    } else if ((m = l.match(reTotal))) {
+      if (st.instalments.length && st.instalmentsTotal === null) st.instalmentsTotal = siNum(m[1]);
+      else if (st.total === null && st.lines.length) st.total = siNum(m[1]);
+    }
+  }
+  st.lines.push(...pending.map(x => ({ ...x, group: 'other' })));
+  if (!to || (!st.lines.length && !Object.keys(st.taken).length)) return null;
+
+  const eur = re => { const x = flat.match(re); return x ? siNum(x[1]) : null; };
+  const sum = o => Object.values(o).reduce((s, v) => s + v, 0);
+  const sent = flat.match(/Prevzeta energija iz omrežja[^.]*? ([\d.]+) kWh, oddana energija v omrežje ([\d.]+) kWh, obračunana energija ([\d.]+) kWh/i);
+  const grab = re => { const x = flat.match(re); return x ? x[1].trim() : null; };
+  return {
+    ...st,
+    year: +to.slice(0, 4), from, to,
+    provider: /gen-i/i.test(flat) ? 'GEN-I' : null,
+    invoice: grab(/(?:Dobropis|Račun) št\.: ?([A-Z]{2}\d{5,})/),
+    takenTotal: sent ? siNum(sent[1]) : sum(st.taken),
+    fedTotal: sent ? siNum(sent[2]) : sum(st.fed),
+    billedKwh: sent ? siNum(sent[3]) : null,
+    total: st.total ?? st.groups.reduce((s, g) => s + g.total, 0),
+    instalmentsTotal: st.instalmentsTotal ?? st.instalments.reduce((s, i) => s + i.amount, 0),
+    net: eur(/(-?[\d.]+,\d{2}) ?€ Osnova za DDV/), vat: eur(/(-?[\d.]+,\d{2}) ?€ Znesek DDV/),
+    gross: eur(/(-?[\d.]+,\d{2}) ?€ Skupaj znesek računa z DDV/), toPay: eur(/ZA PLAČILO Z DDV:? ?(-?[\d.]+,\d{2})/),
+    connectionKw: eur(/Priključna moč: ?(\d+)/), fuse: grab(/omejevalcu toka: ?(\d ?x ?\d+ ?A)/i),
+    priceList: grab(/Vrsta cenika: ?([^,;]+)/),
+  };
+}
+
+const STMT_GROUPS = { energy: 'Energy', network: 'Network fee', contributions: 'Contributions', excise: 'Excise duty',
+  fee: 'Monthly fee', discounts: 'Discounts & services', other: 'Other' };
+// Network-fee time blocks (Energy Agency, in force since Oct 2024): the block that applies at
+// high-load hours for each season/day type; medium-load hours are one block later, low-load two.
+const BLOCK_HOURS = [['0–6', 2], ['6–7', 1], ['7–14', 0], ['14–16', 1], ['16–20', 0], ['20–22', 1], ['22–24', 2]];
+const BLOCK_DAYS = [['High season · working day', 1], ['High season · weekend / holiday', 2],
+  ['Low season · working day', 2], ['Low season · weekend / holiday', 3]];
+
+let elecYearSel = null;
+function elecStatements() {
+  return Object.values(state.elecStatements || {}).filter(s => s && !s.removed).sort((a, b) => b.year - a.year);
+}
+function selectElecYear(y) { elecYearSel = y; renderElecStatement(); }
+function removeElecStatement(y) {
+  if (!confirm(`Remove the ${y} electricity statement? Your monthly entries are not affected.`)) return;
+  state.elecStatements[y] = { year: y, removed: true, updatedAt: Date.now() };
+  elecYearSel = null;
+  saveState();
+  renderElecStatement();
+}
+// Length of a period in months, counting part-months by days (5–28 Feb = 0.86)
+function monthsBetween(from, to) {
+  const a = new Date(from + 'T00:00'), b = new Date(to + 'T00:00');
+  let n = 0;
+  for (let d = new Date(a.getFullYear(), a.getMonth(), 1); d <= b; d = new Date(d.getFullYear(), d.getMonth() + 1, 1)) {
+    const dim = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
+    const s = d < a ? a.getDate() : 1;
+    const e = (d.getFullYear() === b.getFullYear() && d.getMonth() === b.getMonth()) ? b.getDate() : dim;
+    n += (e - s + 1) / dim;
+  }
+  return n;
+}
+
+function renderElecStatement() {
+  const wrap = document.getElementById('elecYear');
+  if (!wrap) return;
+  const all = elecStatements();
+  const head = `<div class="card-head"><h2><span style="color:${getUtility('electricity').color}">${svgIcon('electricity', 20)}</span> Electricity — yearly statement</h2>`;
+  if (!all.length) {
+    wrap.innerHTML = `<section class="card">${head}</div>
+      <p class="stmt-note" style="margin:8px 0 14px">Import your supplier's yearly settlement — the December bill that lists energy taken from and sent to the grid, the cost lines per time block and the instalments already billed — to see the whole year here.</p>
+      <button class="btn btn-ghost" onclick="document.getElementById('billPdf').click()">Import statement PDF</button></section>`;
+    return;
+  }
+  const s = all.find(x => x.year === elecYearSel) || all[0];
+  const kwh = n => Math.round(n).toLocaleString('en-US');
+  const dLong = iso => { const d = new Date(iso + 'T00:00'); return `${d.getDate()} ${MONTHS[d.getMonth()]} ${d.getFullYear()}`; };
+  const pills = all.length > 1 ? `<div class="charts-controls" style="margin:12px 0 0">${all.map(x =>
+    `<button class="period-btn ${x.year === s.year ? 'active' : ''}" onclick="selectElecYear(${x.year})">${x.year}</button>`).join('')}</div>` : '';
+  const net = s.fedTotal - s.takenTotal;
+  const vatRate = s.net && s.vat ? Math.round(s.vat / s.net * 100) / 100 : 0.22;
+  const split = o => Object.entries(o).map(([k, v]) => `${k === 'VT' ? 'High tariff' : k === 'MT' ? 'Low tariff' : 'Single tariff'} ${kwh(v)}`).join(' · ');
+
+  const stat = (label, value, sub) => `<div class="stat"><span>${label}</span><b>${value}</b><small>${sub}</small></div>`;
+  const stats = stat('Taken from the grid', `${kwh(s.takenTotal)} kWh`, split(s.taken) || '&nbsp;')
+    + stat('Sent to the grid', `${kwh(s.fedTotal)} kWh`, split(s.fed) || '&nbsp;')
+    + stat(net >= 0 ? 'Surplus' : 'Shortfall', `${kwh(Math.abs(net))} kWh`,
+        s.billedKwh !== null ? `${kwh(s.billedKwh)} kWh billed${net > 0 ? ' · surplus is not paid out' : ''}` : '&nbsp;')
+    + stat('Cost for the year', formatEur(s.total * (1 + vatRate)), `${formatEur(s.total)} before ${Math.round(vatRate * 100)}% VAT`);
+
+  // Grid exchange: one bar per direction, split by tariff, on a shared scale
+  const flowMax = Math.max(s.takenTotal, s.fedTotal, 1);
+  const flow = (label, o, total, color) => `<div class="flow"><span>${label}</span>
+    <div class="flow-bar">${Object.entries(o).map(([k, v], i) => `<i style="width:${v / flowMax * 100}%;background:${hexA(color, i ? 0.5 : 1)}" title="${k} ${kwh(v)} kWh"></i>`).join('')}</div>
+    <b>${kwh(total)} kWh</b></div>`;
+  const u = getUtility('electricity'), w = getUtility('water');
+  const flows = `<h3>Grid exchange</h3>${flow('Taken', s.taken, s.takenTotal, w.color)}${flow('Sent', s.fed, s.fedTotal, u.color)}
+    <p class="stmt-note">Darker = high tariff (VT), lighter = low tariff (MT). The meter only sees what crosses it — solar power you used directly is not included.</p>`;
+
+  // Cost groups
+  const gMax = Math.max(...s.groups.map(g => Math.abs(g.total)), 0.01);
+  const costs = `<h3>Where the money went <span>before VAT</span></h3><table class="stmt-table"><tbody>${s.groups.map(g => `<tr>
+      <td>${STMT_GROUPS[g.key] || escHtml(g.label)}</td>
+      <td class="barcell"><i style="width:${Math.abs(g.total) / gMax * 100}%;background:${g.total < 0 ? 'var(--green)' : 'var(--brand-2)'}"></i></td>
+      <td class="num">${g.total < 0 ? '−' : ''}${formatEur(Math.abs(g.total))}</td></tr>`).join('')}</tbody>
+    <tfoot><tr><td>Total</td><td></td><td class="num">${formatEur(s.total)}</td></tr></tfoot></table>`;
+
+  // Agreed power per time block
+  const blocks = s.lines.filter(l => l.block).sort((a, b) => a.block - b.block || a.from.localeCompare(b.from));
+  const blockTable = blocks.length ? `<h3>Network fee by time block <span>agreed power</span></h3>
+    <div class="stmt-scroll"><table class="stmt-table"><thead><tr><th>Block</th><th>Period</th><th class="num">Agreed power</th><th class="num">€ / kW / month</th><th class="num">Amount</th></tr></thead>
+    <tbody>${blocks.map(l => `<tr><td><span class="blk" data-b="${l.block}">${l.block}</span></td>
+      <td>${fmtDay(l.from)} – ${fmtDay(l.to)}</td>
+      <td class="num">≈ ${(l.qty / monthsBetween(l.from, l.to)).toFixed(1)} kW</td>
+      <td class="num">${l.price.toFixed(4)}</td><td class="num">${formatEur(l.amount)}</td></tr>`).join('')}</tbody>
+    <tfoot><tr><td colspan="4">All blocks</td><td class="num">${formatEur(blocks.reduce((a, l) => a + l.amount, 0))}</td></tr></tfoot></table></div>` : '';
+
+  const schedule = `<h3>When each block applies</h3>
+    <div class="stmt-scroll"><table class="stmt-table sched"><thead><tr><th>Hours</th>${BLOCK_HOURS.map(h => `<th class="num">${h[0]}</th>`).join('')}</tr></thead>
+    <tbody>${BLOCK_DAYS.map(([label, base]) => `<tr><td>${label}</td>${BLOCK_HOURS.map(h => `<td class="num"><span class="blk" data-b="${base + h[1]}">${base + h[1]}</span></td>`).join('')}</tr>`).join('')}</tbody></table></div>
+    <p class="stmt-note">Block 1 is the most expensive, block 5 is free. High season is November–February, low season March–October. The schedule is set by the Energy Agency (uro.si) and can change — check there for the current one.</p>`;
+
+  // Instalments + settlement
+  const inst = s.instalments.length ? `<h3>Instalments already billed <span>before VAT</span></h3>
+    <table class="stmt-table"><tbody>${s.instalments.map(i => `<tr><td>${MONTHS[+i.from.slice(5, 7) - 1]} ${i.from.slice(0, 4)}</td><td class="dim">${escHtml(i.invoice)}</td><td class="num">${formatEur(i.amount)}</td></tr>`).join('')}</tbody>
+    <tfoot><tr><td colspan="2">Total</td><td class="num">${formatEur(s.instalmentsTotal)}</td></tr></tfoot></table>` : '';
+  const diff = s.total - s.instalmentsTotal;
+  const settle = `<h3>Settlement</h3><table class="stmt-table"><tbody>
+      <tr><td>Cost for the year</td><td class="num">${formatEur(s.total)}</td></tr>
+      <tr><td>Instalments already billed</td><td class="num">−${formatEur(s.instalmentsTotal)}</td></tr>
+      <tr><td>Difference before VAT</td><td class="num">${diff < 0 ? '−' : ''}${formatEur(Math.abs(diff))}</td></tr>
+      ${s.gross !== null ? `<tr><td>${s.gross < 0 ? 'Credit' : 'Balance'} including VAT</td><td class="num">${formatEur(Math.abs(s.gross))}</td></tr>` : ''}
+    </tbody>${s.toPay !== null ? `<tfoot><tr><td>To pay</td><td class="num">${formatEur(s.toPay)}</td></tr></tfoot>` : ''}</table>
+    ${s.gross !== null && s.gross < 0 ? '<p class="stmt-note">A credit stays on your account with the supplier unless you ask for a refund.</p>' : ''}`;
+
+  const allLines = `<details class="stmt-details"><summary>All ${s.lines.length} line items</summary>
+    <div class="stmt-scroll"><table class="stmt-table"><thead><tr><th>Item</th><th>Period</th><th class="num">Quantity</th><th class="num">Price</th><th class="num">Amount</th></tr></thead>
+    <tbody>${s.lines.map(l => `<tr><td>${escHtml(l.name)}</td><td>${fmtDay(l.from)} – ${fmtDay(l.to)}</td><td class="num">${l.qty} ${l.unit}</td><td class="num">${l.price}</td><td class="num">${formatEur(l.amount)}</td></tr>`).join('')}</tbody></table></div></details>`;
+
+  const compare = all.length > 1 ? `<h3>Year by year</h3><div class="stmt-scroll"><table class="stmt-table"><thead><tr><th>Year</th><th class="num">Taken</th><th class="num">Sent</th><th class="num">Net</th><th class="num">Cost before VAT</th></tr></thead>
+    <tbody>${all.map(x => `<tr><td>${x.year}</td><td class="num">${kwh(x.takenTotal)} kWh</td><td class="num">${kwh(x.fedTotal)} kWh</td><td class="num">${x.fedTotal >= x.takenTotal ? '+' : '−'}${kwh(Math.abs(x.fedTotal - x.takenTotal))} kWh</td><td class="num">${formatEur(x.total)}</td></tr>`).join('')}</tbody></table></div>` : '';
+
+  const meta = [s.provider, `${dLong(s.from)} – ${dLong(s.to)}`, s.invoice, s.connectionKw ? `${s.connectionKw} kW connection` : '', s.fuse].filter(Boolean).map(escHtml).join(' · ');
+  wrap.innerHTML = `<section class="card">${head}
+      <span class="card-aside">${meta}</span></div>${pills}
+    <div class="stat-row">${stats}</div>
+    <div class="stmt-grid">
+      <div>${flows}${costs}${settle}</div>
+      <div>${blockTable}${schedule}${inst}</div>
+    </div>
+    ${compare}${allLines}
+    <div style="margin-top:16px"><button class="btn btn-danger btn-sm" onclick="removeElecStatement(${s.year})">Remove this statement</button></div>
+  </section>`;
 }
 
 // ═══════════════════════════════════════════════════════════
